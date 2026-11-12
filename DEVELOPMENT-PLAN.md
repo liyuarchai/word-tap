@@ -1,8 +1,8 @@
 # Word Tap MVP 开发与维护计划
 
 > 文档类型：生产开发计划、任务台账与验收记录  
-> 计划版本：v3.5  
-> 当前迭代：R1：核心闭环可信度与可访问性修复  
+> 计划版本：v4.2  
+> 当前迭代：R2：AI 词义解释状态机  
 > 状态：阶段完成，等待用户审阅  
 > 最后更新：2026-11-13  
 > 目标目录：`E:\ai\word tap\app`  
@@ -26,10 +26,10 @@
 
 | 项目 | 当前值 |
 | --- | --- |
-| 当前阶段 | R1：核心闭环可信度与可访问性修复（完成，待用户审阅） |
-| 已完成任务 | 原有 MVP 阶段一至阶段三完成，阶段四自动化完成；R0 计划基线已确认 |
+| 当前阶段 | R2：AI 词义解释状态机（完成，待用户审阅） |
+| 已完成任务 | MVP 阶段一至阶段三完成；R0、R1、R2 完成 |
 | 当前阻塞 | 无 |
-| 下一任务 | 用户审阅 R1；未确认前不进入 R2 |
+| 下一任务 | 用户审阅 R2；未确认前不进入 R3 |
 | 生产工程 | `app/` 已创建并可构建 |
 | Git 仓库 | 根目录已初始化，分支 `main`，首次提交 `4b675a0` |
 | 可用运行时 | Node.js 24.22.1、pnpm 11.25.0 |
@@ -51,6 +51,7 @@
 | --- | --- | --- | --- | --- |
 | R0：计划基线与范围锁定 | 完成 | 2026-11-13 | 2026-11-13 | 用户已确认 R0，R1 作为独立 Goal 启动 |
 | R1：核心闭环可信度与可访问性修复 | 完成 | 2026-11-13 | 2026-11-13 | 46 个单元/组件测试、7 个 E2E、lint、typecheck、build 全部通过 |
+| R2：AI 词义解释状态机 | 完成 | 2026-11-13 | 2026-11-13 | 62 个单元/组件测试、12 个 E2E、lint、typecheck、build 全部通过 |
 
 ## 1.3 当前活跃迭代：R0 计划基线与范围锁定
 
@@ -243,6 +244,271 @@ pnpm test:e2e
 - 主 JavaScript chunk 为 784.80 kB，仍有 Vite 体积提示；代码分割属于后续性能阶段。
 - 移动词卡仍为底部面板，拖拽扩展未在本阶段实现。
 - 原有阶段四的真实 DeepSeek 精析人工复测仍待用户完成；R1 已通过拦截网络与字段兼容测试覆盖实现契约。
+
+## 1.5 下一阶段：R2 AI 词义解释状态机
+
+> 状态：完成。R1 不重开；R2 状态机、UI 和测试均已通过。
+
+### R2 目标
+
+在现有 Word Tap 点词语境释义上建立完整、可测试的模型行为状态机，清晰区分本地词典、AI 生命周期、缓存、取消和所有失败状态。
+
+本阶段只处理点词 AI 语境解释：
+
+- 不修改 OCR。
+- 不增加多模态或图片识别入口。
+- 不重构句子翻译和精析的状态机。
+- 不增加账号、云同步、聊天、社交或排行榜。
+
+### R2 输出模式决策
+
+当前 AI 请求使用 `stream:false`，返回完整 JSON 后由 Zod 校验。阶段二采用：
+
+```text
+validated-progressive
+```
+
+即：
+
+1. 等待完整模型响应。
+2. 使用 `wordExplanationSchema` 校验完整结构。
+3. 校验通过后，按字段渐进展示。
+4. 渐进展示完成后写入缓存并进入完成态。
+
+这不是真实网络 SSE。代码类型、注释、README 和 UI 测试名称必须明确标注 `validated-progressive`，不得把字段渐显描述为真实流式传输。
+
+### R2 状态类型
+
+新增 `app/src/features/reader/wordAiStateMachine.ts`，核心类型固定为：
+
+```ts
+type DictionaryUiState =
+  | { phase: 'loading' }
+  | {
+      phase: 'ready'
+      lemma: string
+      definition: string
+      meta: string
+    }
+  | { phase: 'not-found' }
+  | { phase: 'error'; message: string }
+
+type AiUiPhase =
+  | 'not-configured'
+  | 'configured-idle'
+  | 'waiting-first'
+  | 'streaming'
+  | 'complete'
+  | 'cache-hit'
+  | 'cancelled'
+  | 'offline'
+  | 'timeout'
+  | 'rate-limited'
+  | 'server-error'
+  | 'invalid-response'
+  | 'auth-error'
+
+type AiUiAction =
+  | 'configure'
+  | 'retry'
+  | 'check-network'
+  | 'wait'
+
+interface AiUiState {
+  phase: AiUiPhase
+  transport: 'validated-progressive'
+  result?: WordExplanation
+  message?: string
+  action?: AiUiAction
+  httpStatus?: number
+  localFallbackAvailable: true
+}
+
+interface WordAiSnapshot {
+  dictionary: DictionaryUiState
+  ai: AiUiState
+}
+```
+
+`localFallbackAvailable: true` 是 AI 不可用时的固定不变量：AI 状态可以失败，但本地词典、原句、收藏、复习和导出不被禁用。
+
+### R2 状态清单
+
+| # | 状态 | 进入条件 | UI 与后续动作 |
+| --- | --- | --- | --- |
+| 1 | 本地词典加载中 | 词卡打开 | 本地区显示“正在查询本地词典…”；AI 不先于本地状态完成 |
+| 2 | 本地词典已返回 | 查到词条或明确未收录/加载失败 | 显示本地释义、音标、词性或“未收录”；本地区不再等待 AI |
+| 3 | 未配置 API Key | 本地结果稳定且 Key 为空 | 显示“未配置 API Key；本地词典仍可使用。”+ 去配置 |
+| 4 | 已配置但尚未请求 AI | 本地结果稳定、Key 存在、自动请求启动前 | 内部短暂状态；自动派发请求事件 |
+| 5 | AI 等待首字 | 缓存未命中，请求已发出 | 显示“正在结合上下文…”和停止按钮 |
+| 6 | AI 流式输出 | 完整结果已通过 Zod 校验，开始字段渐显 | 显示“正在呈现已校验的语境解释…”和停止按钮；不得展示原始 JSON |
+| 7 | AI 成功完成 | 四个字段全部显示并验证完成 | 展示完整语境释义、线索、例句和译文 |
+| 8 | 命中本地缓存 | `ai-cache:v2` 命中且 Schema 有效 | 立即显示完整结果并标注“已缓存” |
+| 9 | 用户主动取消 | 用户点击停止或关闭词卡/卸载 | 中止请求或字段渐显，清空未完成 AI 内容，显示“已停止生成”；不写缓存 |
+| 10 | 断网 | `navigator.onLine === false` 或网络失败 | 显示网络原因和检查网络建议；本地流程继续 |
+| 11 | 请求超时 | 超时 AbortController 触发，reason 为 timeout | 显示超时信息 + 重试；本地流程继续 |
+| 12 | 429 限流 | HTTP 429 | 显示“请求过于频繁或额度受限”+ 稍后重试；本地流程继续 |
+| 13 | 5xx 服务错误 | 5xx 且一次重试后仍失败 | 显示“AI 服务暂时不可用”+ 重试；本地流程继续 |
+| 14 | 空内容或结构不合法 | 响应为空、JSON 非法、Zod 校验失败 | 显示“AI 返回内容为空或无法校验”+ 重新生成；不展示原始 JSON |
+| 15 | AI 不可用但本地继续 | 任一 AI 失败、取消或未配置 | AI 区显示具体原因和动作，本地阅读、收藏、复习、导出保持可用 |
+
+额外保留 `auth-error`：401/403 时提示“API Key 无效或没有模型权限”+ 去设置。它不与 429、5xx 或非法响应混用。
+
+### R2 状态转换
+
+新增 reducer 处理以下事件，禁止在组件中依赖多个互斥布尔值：
+
+```ts
+type WordAiEvent =
+  | { type: 'DICTIONARY_LOAD_STARTED' }
+  | { type: 'DICTIONARY_READY'; lemma: string; definition: string; meta: string }
+  | { type: 'DICTIONARY_NOT_FOUND' }
+  | { type: 'DICTIONARY_FAILED'; message: string }
+  | { type: 'AI_REQUESTED' }
+  | { type: 'AI_WAITING_FIRST' }
+  | { type: 'AI_REVEAL_STARTED' }
+  | { type: 'AI_REVEAL_FIELD'; field: keyof WordExplanation }
+  | { type: 'AI_COMPLETED'; result: WordExplanation }
+  | { type: 'AI_CACHE_HIT'; result: WordExplanation }
+  | { type: 'AI_CANCELLED' }
+  | { type: 'AI_OFFLINE' }
+  | { type: 'AI_TIMED_OUT' }
+  | { type: 'AI_RATE_LIMITED' }
+  | { type: 'AI_SERVER_ERROR'; status?: number }
+  | { type: 'AI_INVALID_RESPONSE' }
+  | { type: 'AI_AUTH_ERROR' }
+```
+
+转换约束：
+
+- 本地词典未进入 `ready`、`not-found` 或 `error` 前，不得进入 `waiting-first`。
+- `configured-idle` 在自动请求启动后只能进入缓存命中或 `waiting-first`。
+- 只有完整响应通过 Zod 校验后才允许进入 `streaming`。
+- 只有所有验证字段完成渐显后才允许进入 `complete` 并写缓存。
+- `cancelled`、`timeout`、`offline` 和网络失败态不得写入缓存。
+- `complete` 和 `cache-hit` 必须保留独立的来源语义。
+
+### R2 请求生命周期
+
+- 词卡维护一个用户取消 AbortController 和一个单调递增 requestId。
+- 用户点击停止时使用明确 abort reason，例如 `user-cancel`。
+- 超时由 `withTimeout` 使用独立 abort reason，例如 `timeout`。
+- 取消和超时不得被映射为同一状态。
+- 新词点击、关闭词卡和组件卸载均 abort 当前请求并递增 requestId。
+- 响应、字段渐显和缓存写入前都校验 requestId 与当前词卡身份。
+- 用户取消后立即停止后续字段渐显；已清空 AI 内容，禁止再 setState 或写缓存。
+- 只有渐进展示完成后才写 `ai-cache:v2`；取消时不得缓存已验证但未完成展示的结果。
+
+### R2 文案与可访问性
+
+| 状态 | 固定文案 | 动作 |
+| --- | --- | --- |
+| 未配置 | 未配置 API Key；本地词典仍可使用。 | 去配置 |
+| 等待 | 正在结合上下文… | 停止生成 |
+| 渐进展示 | 正在呈现已校验的语境解释… | 停止生成 |
+| 缓存 | 语境解释 · 已缓存 | — |
+| 主动取消 | 已停止生成；本地释义已保留。 | 重新生成 |
+| 断网 | 当前网络不可用；本地词典、收藏和复习不受影响。 | 检查网络 |
+| 超时 | AI 未在设定时间内响应；本地释义已保留。 | 重试 |
+| 429 | 请求过于频繁或额度受限；请稍后重试。 | 重试 |
+| 5xx | AI 服务暂时不可用。 | 重试 |
+| 非法响应 | AI 返回内容为空或无法校验。 | 重新生成 |
+| 鉴权错误 | API Key 无效或没有模型权限。 | 去设置 |
+
+可访问性要求：
+
+- AI 区块只有一个 `role="status"`、`aria-live="polite"`、`aria-atomic="true"` 的状态区域。
+- 只在状态转换时播报，不逐字段播报。
+- 相同文案不得因重复渲染再次朗读；使用 transition sequence 或上一播报文案去重。
+- 停止、重试、去配置、去设置等动作必须是可键盘访问的按钮或链接。
+- 停止按钮在等待和渐进展示阶段可用，触控尺寸至少 44×44 px。
+- 错误状态使用文字和动作说明，不只依赖颜色。
+
+### R2 布局与视觉
+
+- 本地词典、原句、AI 语境继续分区；本地结果始终先出现。
+- AI 区预留最小高度，骨架、停止、错误和成功态切换不得使词卡主按钮大幅位移。
+- 渐进展示仅显示完整校验后的四个用户可理解字段，不显示原始 JSON、请求体或思维链。
+- `streaming` 状态的界面文案不使用“真实流式”表述；README 和代码注释标注 `validated-progressive`。
+- 缓存状态明确显示“已缓存”，不得把缓存结果标成新生成结果。
+
+### R2 允许修改的文件
+
+- 新增 `app/src/features/reader/wordAiStateMachine.ts`
+- 新增 `app/src/features/reader/wordAiStateMachine.test.ts`
+- `app/src/features/reader/WordPanel.tsx`
+- `app/src/services/ai.ts`
+- `app/src/services/ai.test.ts`
+- `app/src/domain/types.ts`（仅错误状态/HTTP 状态所需类型）
+- `app/src/styles/app.module.css`（仅 AI 状态区和布局稳定）
+- `app/tests/e2e/app.spec.ts`
+- `app/README.md`（明确 validated-progressive 非 SSE）
+- `DEVELOPMENT-PLAN.md`（实施后回写证据）
+
+不新增依赖。不得修改 OCR、多模态、翻译/精析 UI、Dexie 表或备份格式。
+
+### R2 实施步骤
+
+1. 建立状态机类型、初始状态、事件和 reducer。
+2. 为词典状态和 AI 状态定义独立初始化与事件。
+3. 扩展 `AiClientError` 携带 HTTP 状态；保持 5xx 单次重试及错误分类。
+4. 将 `WordPanel` 的 `loading/none/success/error` 和布尔状态迁移到 reducer。
+5. 在本地词典进入终态后自动检查缓存；未命中再进入 `waiting-first`。
+6. 接入用户取消 AbortController、timeout reason、requestId 和卸载清理。
+7. 完整 Zod 校验后按字段渐显；完成后写缓存并进入 `complete`。
+8. 增加停止按钮、缓存标签、错误动作和唯一 aria-live 状态区。
+9. 增加布局稳定与状态播报去重测试。
+10. 运行门禁并回写同一份计划。
+
+### R2 测试计划
+
+- reducer：15 个目标状态及 auth-error 均有明确转换测试。
+- reducer：非法事件不破坏当前状态；词典未完成时不能进入 AI 等待。
+- 单元：无 Key、离线、超时、429、5xx、鉴权失败、空内容、非法 JSON。
+- 单元：取消后无结果写入、无缓存写入、迟到响应被丢弃。
+- 单元：缓存命中与网络成功状态不同；非法缓存不展示。
+- 组件：本地词典先显示；AI 状态独立；停止按钮只在等待/渐显出现。
+- 组件：取消后清空未完成 AI 内容；重试从失败态重新开始。
+- 可访问性：唯一 aria-live 状态播报；渐显字段不重复播报；按钮可键盘操作。
+- E2E：无 Key、离线、等待中取消、429、5xx、缓存命中、收藏与复习仍可用。
+- 视觉：AI 骨架、错误、渐显和成功之间词卡主按钮位移不超过 8 px。
+
+### R2 数据兼容策略
+
+- 不修改 `WordTapDatabase` Dexie 版本和表结构。
+- 不修改内容、生词、复习、设置和 `wordtap.backup.v1` 数据契约。
+- 缓存继续使用 `ai-cache:v2`，键包含原形/当前句、Provider、模型和前后文。
+- API Key 不进入状态快照、日志、测试快照、Markdown 或 JSON。
+- 本地词典、收藏、复习和导出不等待 AI 状态机。
+
+### R2 测试门禁
+
+```powershell
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm test:e2e
+```
+
+### R2 验收标准
+
+- 本地词典加载中与已返回状态清楚可区分，AI 不阻塞本地结果。
+- 未配置、已配置未请求、等待、渐显、成功、缓存、取消和所有错误均有代码级状态。
+- 用户可在等待和渐显期间停止；取消后不更新结果或缓存。
+- 断网、超时、429、5xx、空内容和非法结构都有具体原因与可执行动作。
+- AI 失败时原句和本地词典始终保留，收藏、复习和导出仍可用。
+- 缓存命中明确标注“已缓存”。
+- UI 不出现原始 JSON、完整思维链或伪造的真实流式文案。
+- aria-live 只在状态变化时播报，不逐字段重复朗读。
+- AI 状态变化造成的词卡主按钮位移不超过 8 px。
+- Dexie 表和业务数据格式未改变。
+- 上述五条测试命令全部通过，实际结果写入本文件“13.2 实际测试记录”。
+
+### R2 已知限制
+
+- “流式输出”状态是完整响应通过 Zod 校验后的 `validated-progressive` 字段渐显，不是真实 SSE。
+- 主 JavaScript chunk 为 792.08 kB，仍有 Vite 体积提示；代码分割属于后续阶段。
 
 ## 2. 产品目标与范围
 
@@ -788,6 +1054,12 @@ pnpm test:e2e
 | 2026-11-13 | R1 | `pnpm test:e2e` | 7/7 通过 | 24.1s | 查看跳转、上下文、竞态、缓存、焦点、触控和五页面 axe | 本文件 |
 | 2026-11-13 | R1 | `pnpm test:e2e` | 7/7 通过 | 23.5s | 将扩展上下文测试收敛到白名单内后最终复跑 | 本文件 |
 | 2026-11-13 | R1 | `pnpm build` | 通过，PWA 19 项预缓存 | 6.1s | 主包 784.80 kB，体积提示不阻断 | `app/dist` |
+| 2026-11-13 | R2 | `pnpm lint` | 通过 | 3.2s | 状态机、组件和 E2E 静态检查通过 | 本文件 |
+| 2026-11-13 | R2 | `pnpm typecheck` | 通过 | 3.2s | 联合状态类型和 HTTP 状态类型通过 | 本文件 |
+| 2026-11-13 | R2 | `pnpm test` | 62/62 通过 | 5.0s | reducer、取消/超时、缓存和 AI 客户端测试 | 本文件 |
+| 2026-11-13 | R2 | `pnpm test:e2e` | 11/11 通过 | 24.2s | 无 Key、离线、停止、5xx、非法响应、缓存和布局 | 本文件 |
+| 2026-11-13 | R2 | `pnpm build` | 通过，PWA 19 项预缓存 | 5.6s | 主包 792.08 kB，体积提示不阻断 | `app/dist` |
+| 2026-11-13 | R2 | `pnpm test:e2e` | 12/12 通过 | 27.5s | 补验渐进展示阶段停止、aria-live 唯一性与缓存不写入 | 本文件 |
 | 2026-11-04 | 阶段一 | `pnpm lint` | 通过，1 个非阻断 Fast Refresh 警告 | 2.6s | — | 本文件 |
 | 2026-11-04 | 阶段一 | `pnpm typecheck` | 通过 | 2.8s | 初次测试泛型错误，已修复 | 本文件 |
 | 2026-11-04 | 阶段一 | `pnpm test` | 22/22 通过 | 1.1s | 排除 E2E 目录避免 Vitest 误收集 | 本文件 |
@@ -876,6 +1148,9 @@ pnpm test:e2e
 | 2026-11-04 | 执行计划调整为四阶段 | 每阶段需要完整 UI、数据、测试门禁 | 阶段二 UI、阶段三数据与 Mock AI、阶段四真实 API/PWA |
 | 2026-11-13 | 使用单一计划文档管理后续迭代 | 避免每个阶段生成计划副本造成冗余 | 原地维护本文件，以修订号、阶段状态和变更记录保留历史 |
 | 2026-11-13 | R0 只做计划锁定，R1 独立作为 Goal | Goal 需要有清晰、可验证的单一终点 | R0 未确认前不修改业务代码，不启动 R1 |
+| 2026-11-13 | R2 使用 validated-progressive | 完整结构化 JSON 的部分分片不能可靠校验，展示未验证 JSON 会违反可信原则 | 保持非 SSE 请求，完整校验后逐字段展示，并在代码与文案中明确非真实流式 |
+| 2026-11-13 | R2 自动请求点词 AI | 保持“点词后 AI 出现在需要理解处”的核心体验 | 本地词典进入终态后自动检查缓存并发起请求 |
+| 2026-11-13 | R2 取消时清空未完成 AI 内容 | 避免用户把部分生成误当成完整解释 | 保留本地释义和原句，不写结果、不写缓存 |
 
 ## 17. 风险与阻塞记录
 
@@ -894,6 +1169,9 @@ pnpm test:e2e
 
 | 日期 | 版本 | 变更 |
 | --- | --- | --- |
+| 2026-11-13 | v4.2 | R2 最终复跑通过：等待与渐进展示阶段均可取消，aria-live 文案不随字段渐显重复 |
+| 2026-11-13 | v4.1 | R2 完成：AI 词义解释状态机、取消、缓存、渐进展示和可访问播报全部通过 |
+| 2026-11-13 | v4.0 | 新增 R2 AI 词义解释状态机计划：15 个目标状态、validated-progressive、取消/超时区分、可访问播报与测试门禁 |
 | 2026-11-13 | v3.5 | R1 最终复跑通过；恢复未授权测试夹具，扩展上下文测试移入白名单文件 |
 | 2026-11-13 | v3.4 | R1 完成：可信度、AI 边界、竞态/缓存、可访问性及完整测试门禁全部通过 |
 | 2026-11-13 | v3.3 | 用户授权将 `LibraryPage.tsx` 加入 R1 白名单，仅修复列表 ARIA 语义 |

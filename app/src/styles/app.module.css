@@ -858,13 +858,22 @@
 }
 
 .aiBlock {
-  min-height: 112px;
+  min-height: 176px;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--line);
   font-family: var(--zh-serif);
   font-size: 14px;
   line-height: 1.8;
+}
+
+.aiStatusRow {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
 }
 
 .aiMeaning {
@@ -1476,6 +1485,7 @@
 
   .wordPanel {
     max-height: 58vh;
+    height: min(58vh, 620px);
   }
 
   .notebookToolbar {

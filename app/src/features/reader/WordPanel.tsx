@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../app/useApp'
 import { Icon } from '../../components/Icon'
@@ -18,12 +18,54 @@ import {
 } from '../../services/ai'
 import { lookupWord } from '../../services/dictionary'
 import styles from '../../styles/app.module.css'
+import {
+  aiAnnouncement,
+  createInitialWordAiState,
+  WORD_EXPLANATION_FIELDS,
+  wordAiReducer,
+  type WordAiEvent
+} from './wordAiStateMachine'
 
-type AiState =
-  | { status: 'idle' | 'loading' }
-  | { status: 'none'; message: string }
-  | { status: 'success'; result: WordExplanation; cached?: boolean }
-  | { status: 'error'; message: string }
+function waitForReveal(milliseconds: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason)
+      return
+    }
+    const timer = window.setTimeout(resolve, milliseconds)
+    signal.addEventListener(
+      'abort',
+      () => {
+        window.clearTimeout(timer)
+        reject(signal.reason)
+      },
+      { once: true }
+    )
+  })
+}
+
+function errorEvent(error: unknown): WordAiEvent {
+  if (!(error instanceof AiClientError)) {
+    return { type: 'AI_INVALID_RESPONSE' }
+  }
+  switch (error.code) {
+    case 'offline':
+    case 'network':
+      return { type: 'AI_OFFLINE' }
+    case 'timeout':
+      return { type: 'AI_TIMED_OUT' }
+    case 'rate-limit':
+      return { type: 'AI_RATE_LIMITED' }
+    case 'server':
+      return { type: 'AI_SERVER_ERROR', status: error.httpStatus }
+    case 'auth':
+      return { type: 'AI_AUTH_ERROR', status: error.httpStatus }
+    case 'cancelled':
+      return { type: 'AI_CANCELLED' }
+    default:
+      return { type: 'AI_INVALID_RESPONSE' }
+  }
+}
 
 export function WordPanel({
   content,
@@ -46,14 +88,29 @@ export function WordPanel({
 }) {
   const { aiClient, aiEnabled, settings, repository, vocabulary } = useApp()
   const navigate = useNavigate()
-  const [lemma, setLemma] = useState(word.toLowerCase())
-  const [localDefinition, setLocalDefinition] = useState('正在查询本地词典…')
-  const [localMeta, setLocalMeta] = useState('')
-  const [dictionaryMissing, setDictionaryMissing] = useState(false)
-  const [aiState, setAiState] = useState<AiState>(
-    aiEnabled ? { status: 'loading' } : { status: 'none', message: '配置 API Key 可查看语境释义与例句' }
+  const [wordState, dispatch] = useReducer(
+    wordAiReducer,
+    aiEnabled,
+    createInitialWordAiState
   )
-  const [retryToken, setRetryToken] = useState(0)
+  const { dictionary, ai: aiState } = wordState
+  const lemma = dictionary.phase === 'ready' ? dictionary.lemma : word.toLowerCase()
+  const localDefinition =
+    dictionary.phase === 'ready'
+      ? dictionary.definition
+      : dictionary.phase === 'not-found'
+        ? '本地词典暂未收录该词'
+        : dictionary.phase === 'error'
+          ? dictionary.message
+          : '正在查询本地词典…'
+  const localMeta =
+    dictionary.phase === 'ready'
+      ? dictionary.meta
+      : dictionary.phase === 'not-found'
+        ? '可保留上下文，稍后在生词本补充释义'
+        : dictionary.phase === 'error'
+          ? '原文和生词本仍可使用'
+          : '本地词典'
   const [saved, setSaved] = useState<VocabularyRecord | null>(
     vocabulary.find(
       (item) =>
@@ -64,19 +121,24 @@ export function WordPanel({
   )
   const savedRef = useRef(saved)
   const [saving, setSaving] = useState(false)
+  const requestSequence = useRef(0)
+  const activeRequest = useRef<{
+    id: number
+    controller: AbortController
+  } | null>(null)
+  const mountedRef = useRef(true)
+  const autoRequestStarted = useRef(false)
 
   useEffect(() => {
     let cancelled = false
+    dispatch({ type: 'DICTIONARY_LOAD_STARTED' })
     void lookupWord(word)
       .then((result) => {
         if (cancelled) return
         if (!result) {
-          setDictionaryMissing(true)
-          setLocalDefinition('本地词典暂未收录该词')
-          setLocalMeta('可保留上下文，稍后在生词本补充释义')
+          dispatch({ type: 'DICTIONARY_NOT_FOUND' })
           return
         }
-        setLemma(result.lemma)
         if (!savedRef.current) {
           const existing = vocabulary.find(
             (item) =>
@@ -90,18 +152,25 @@ export function WordPanel({
             setSaved(existing)
           }
         }
-        setLocalDefinition(result.entry.translation || result.entry.definition || '暂无中文释义')
-        setLocalMeta(
-          [result.entry.phonetic ? `/${result.entry.phonetic}/` : '', result.entry.pos]
+        dispatch({
+          type: 'DICTIONARY_READY',
+          lemma: result.lemma,
+          definition:
+            result.entry.translation || result.entry.definition || '暂无中文释义',
+          meta: [
+            result.entry.phonetic ? `/${result.entry.phonetic}/` : '',
+            result.entry.pos
+          ]
             .filter(Boolean)
             .join(' · ')
-        )
+        })
       })
       .catch(() => {
         if (!cancelled) {
-          setDictionaryMissing(true)
-          setLocalDefinition('本地词典加载失败')
-          setLocalMeta('原文和生词本仍可使用')
+          dispatch({
+            type: 'DICTIONARY_FAILED',
+            message: '本地词典加载失败'
+          })
         }
       })
     return () => {
@@ -109,98 +178,138 @@ export function WordPanel({
     }
   }, [content.id, segment.id, vocabulary, word])
 
-  useEffect(() => {
-    if (!aiEnabled) {
-      return
+  const applyAiResultToSaved = useCallback(async (result: WordExplanation) => {
+    const currentSaved = savedRef.current
+    if (!currentSaved || currentSaved.aiDefinition) return
+    const updated = {
+      ...currentSaved,
+      aiDefinition: result,
+      updatedAt: new Date().toISOString()
     }
-    if (!segment.text.trim()) return
+    savedRef.current = updated
+    setSaved(updated)
+    await onUpdate(updated)
+  }, [onUpdate])
+
+  const startAi = useCallback(async (retry = false) => {
+    if (!aiEnabled || !segment.text.trim()) return
+    activeRequest.current?.controller.abort('superseded')
+    const id = ++requestSequence.current
     const controller = new AbortController()
-    let cancelled = false
-    void (async () => {
-      try {
-        const cacheKey = await createAiCacheKey({
-          operation: 'word',
-          apiBaseUrl: settings.apiBaseUrl,
-          model: settings.model,
-          target: `${lemma}|${segment.text}`,
-          contextBefore,
-          contextAfter
-        })
-        const cached = await repository.getAiCache(cacheKey)
-        const cachedResult = readValidatedCache(cached, wordExplanationSchema)
-        if (cachedResult) {
-          if (cancelled) return
-          setAiState({
-            status: 'success',
-            result: cachedResult,
-            cached: true
-          })
-          return
-        }
-        const result = await withTimeout(
-          settings.timeoutSeconds,
-          (signal) =>
-            aiClient.explainWord(
-              {
-                word,
-                lemma,
-                sentence: segment.text,
-                contextBefore,
-                contextAfter
-              },
-              signal
-            ),
-          controller.signal
-        )
-        if (cancelled) return
-        await repository.putAiCache({
-          key: cacheKey,
-          operation: 'word',
-          payload: result,
-          createdAt: new Date().toISOString()
-        })
-        setAiState({ status: 'success', result })
-        const currentSaved = savedRef.current
-        if (currentSaved && !currentSaved.aiDefinition) {
-          const updated = {
-            ...currentSaved,
-            aiDefinition: result,
-            updatedAt: new Date().toISOString()
-          }
-          savedRef.current = updated
-          setSaved(updated)
-          await onUpdate(updated)
-        }
-      } catch (error) {
-        if (cancelled) return
-        setAiState({
-          status: 'error',
-          message:
-            error instanceof AiClientError || error instanceof Error
-              ? error.message
-              : 'AI 暂未给出可靠结果'
-        })
+    activeRequest.current = { id, controller }
+    const isCurrent = () =>
+      mountedRef.current &&
+      activeRequest.current?.id === id &&
+      !controller.signal.aborted
+    try {
+      const cacheKey = await createAiCacheKey({
+        operation: 'word',
+        apiBaseUrl: settings.apiBaseUrl,
+        model: settings.model,
+        target: `${lemma}|${segment.text}`,
+        contextBefore,
+        contextAfter
+      })
+      const cached = readValidatedCache(
+        await repository.getAiCache(cacheKey),
+        wordExplanationSchema
+      )
+      if (!isCurrent()) return
+      if (cached && !retry) {
+        dispatch({ type: 'AI_CACHE_HIT', result: cached })
+        await applyAiResultToSaved(cached)
+        return
       }
-    })()
-    return () => {
-      cancelled = true
-      controller.abort()
+
+      dispatch(retry ? { type: 'AI_RETRY_STARTED' } : { type: 'AI_REQUESTED' })
+      const result = await withTimeout(
+        settings.timeoutSeconds,
+        (signal) =>
+          aiClient.explainWord(
+            {
+              word,
+              lemma,
+              sentence: segment.text,
+              contextBefore,
+              contextAfter
+            },
+            signal
+          ),
+        controller.signal
+      )
+      const validated = wordExplanationSchema.safeParse(result)
+      if (!isCurrent()) return
+      if (!validated.success) {
+        dispatch({ type: 'AI_INVALID_RESPONSE' })
+        return
+      }
+
+      dispatch({ type: 'AI_REVEAL_STARTED', result: validated.data })
+      for (const field of WORD_EXPLANATION_FIELDS) {
+        await waitForReveal(220, controller.signal)
+        if (!isCurrent()) return
+        dispatch({ type: 'AI_REVEAL_FIELD', field })
+      }
+      if (!isCurrent()) return
+      dispatch({ type: 'AI_COMPLETED', result: validated.data })
+      await repository.putAiCache({
+        key: cacheKey,
+        operation: 'word',
+        payload: validated.data,
+        createdAt: new Date().toISOString()
+      })
+      await applyAiResultToSaved(validated.data)
+    } catch (error) {
+      if (!mountedRef.current || activeRequest.current?.id !== id) return
+      if (controller.signal.aborted) return
+      dispatch(errorEvent(error))
+    } finally {
+      if (activeRequest.current?.id === id) activeRequest.current = null
     }
   }, [
     aiClient,
     aiEnabled,
+    applyAiResultToSaved,
     contextAfter,
     contextBefore,
     lemma,
-    onUpdate,
     repository,
-    retryToken,
     segment.text,
     settings.apiBaseUrl,
     settings.model,
     settings.timeoutSeconds,
     word
   ])
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      autoRequestStarted.current = false
+      activeRequest.current?.controller.abort('user-cancel')
+      activeRequest.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    if (dictionary.phase === 'loading') return
+    if (aiState.phase !== 'configured-idle') return
+    if (autoRequestStarted.current) return
+    autoRequestStarted.current = true
+    void startAi()
+  }, [aiState.phase, dictionary.phase, startAi])
+
+  const stopAi = () => {
+    const request = activeRequest.current
+    if (!request) return
+    activeRequest.current = null
+    request.controller.abort('user-cancel')
+    dispatch({ type: 'AI_CANCELLED' })
+  }
+
+  const retryAi = useCallback(() => {
+    void startAi(true)
+  }, [startAi])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -216,6 +325,10 @@ export function WordPanel({
     try {
       const now = new Date().toISOString()
       const id = await sha256(`${content.id}|${segment.id}|${lemma}`)
+      const aiDefinition =
+        aiState.phase === 'complete' || aiState.phase === 'cache-hit'
+          ? aiState.result
+          : undefined
       const vocabularyRecord: VocabularyRecord = {
         id,
         word,
@@ -228,7 +341,7 @@ export function WordPanel({
         startMs: segment.startMs,
         sourceName: content.sourceName,
         localDefinition,
-        aiDefinition: aiState.status === 'success' ? aiState.result : undefined,
+        aiDefinition,
         userDefinition: '',
         note: '',
         createdAt: now,
@@ -251,6 +364,58 @@ export function WordPanel({
       return
     }
     void addWord()
+  }
+
+  const isAiBusy =
+    aiState.phase === 'waiting-first' || aiState.phase === 'streaming'
+  const resultForDisplay =
+    aiState.phase === 'streaming' ||
+    aiState.phase === 'complete' ||
+    aiState.phase === 'cache-hit'
+      ? aiState.result
+      : null
+  const revealedFields =
+    aiState.phase === 'streaming'
+      ? aiState.revealedFields
+      : aiState.phase === 'complete' || aiState.phase === 'cache-hit'
+        ? WORD_EXPLANATION_FIELDS
+        : []
+  const errorPhases = [
+    'not-configured',
+    'cancelled',
+    'offline',
+    'timeout',
+    'rate-limited',
+    'server-error',
+    'invalid-response',
+    'auth-error'
+  ] as const
+  const isErrorState = errorPhases.includes(
+    aiState.phase as (typeof errorPhases)[number]
+  )
+
+  const renderAiAction = () => {
+    if (!('action' in aiState)) return null
+    if (aiState.action === 'configure') {
+      return (
+        <a href="/settings" className={styles.textButton}>
+          去配置
+        </a>
+      )
+    }
+    const label =
+      aiState.phase === 'cancelled' || aiState.phase === 'invalid-response'
+        ? '重新生成'
+        : aiState.action === 'check-network'
+        ? '检查网络后重试'
+        : aiState.action === 'wait'
+          ? '稍后重试'
+          : '重试'
+    return (
+      <button className={styles.textButton} type="button" onClick={retryAi}>
+        {label}
+      </button>
+    )
   }
 
   return (
@@ -281,46 +446,59 @@ export function WordPanel({
 
         <section className={styles.panelSection}>
           <div className={styles.sectionLabel}>
-            {dictionaryMissing ? 'AI 推断' : aiState.status === 'success' && aiState.cached ? '语境 · 已缓存' : '语境'}
+            {dictionary.phase === 'not-found'
+              ? 'AI 推断'
+              : aiState.phase === 'cache-hit'
+                ? '语境 · 已缓存'
+                : '语境'}
           </div>
           <div className={styles.aiBlock}>
-            {aiState.status === 'loading' ? (
+            <p className={styles.srOnly} role="status" aria-live="polite" aria-atomic="true">
+              {aiAnnouncement(aiState)}
+            </p>
+            {aiState.phase === 'configured-idle' ? (
+              <p className={styles.aiClue}>正在准备语境解释…</p>
+            ) : null}
+            {aiState.phase === 'waiting-first' ? (
               <>
-                <p className={styles.metaLine}>正在结合上下文…</p>
+                <p className={styles.metaLine}>{aiState.message}</p>
                 <div className={styles.skeletonRow} />
                 <div className={`${styles.skeletonRow} ${styles.skeletonRowShort}`} />
               </>
             ) : null}
-            {aiState.status === 'none' ? (
-              <p className={styles.aiClue}>
-                {aiState.message} ·{' '}
-                <a href="/settings" className={styles.textButton}>
-                  去配置
-                </a>
-              </p>
+            {aiState.phase === 'streaming' ? (
+              <p className={styles.aiClue}>{aiState.message}</p>
             ) : null}
-            {aiState.status === 'error' ? (
-              <p className={styles.aiClue}>
-                {aiState.message} ·{' '}
+            {resultForDisplay && revealedFields.includes('contextMeaning') ? (
+              <p className={styles.aiMeaning}>{resultForDisplay.contextMeaning}</p>
+            ) : null}
+            {resultForDisplay && revealedFields.includes('clue') ? (
+              <p className={styles.aiClue}>{resultForDisplay.clue}</p>
+            ) : null}
+            {resultForDisplay && revealedFields.includes('example') ? (
+              <p className={styles.aiExample}>{resultForDisplay.example}</p>
+            ) : null}
+            {resultForDisplay && revealedFields.includes('exampleZh') ? (
+              <p className={styles.aiExampleZh}>{resultForDisplay.exampleZh}</p>
+            ) : null}
+            {isErrorState ? (
+              <div className={styles.aiStatusRow}>
+                <p className={styles.aiClue}>
+                  {'message' in aiState ? aiState.message : ''}
+                </p>
+                {renderAiAction()}
+              </div>
+            ) : null}
+            {isAiBusy ? (
+              <div className={styles.aiStatusRow}>
                 <button
                   className={styles.textButton}
                   type="button"
-                  onClick={() => {
-                    setAiState({ status: 'loading' })
-                    setRetryToken((value) => value + 1)
-                  }}
+                  onClick={stopAi}
                 >
-                  重试
+                  停止生成
                 </button>
-              </p>
-            ) : null}
-            {aiState.status === 'success' ? (
-              <>
-                <p className={styles.aiMeaning}>{aiState.result.contextMeaning}</p>
-                <p className={styles.aiClue}>{aiState.result.clue}</p>
-                <p className={styles.aiExample}>{aiState.result.example}</p>
-                <p className={styles.aiExampleZh}>{aiState.result.exampleZh}</p>
-              </>
+              </div>
             ) : null}
           </div>
         </section>

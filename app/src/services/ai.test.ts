@@ -68,7 +68,7 @@ describe('HttpAiClient', () => {
     const client = new HttpAiClient(settings)
     await expect(
       client.analyzeSentence({ sentence: 'Hello.' }, new AbortController().signal)
-    ).rejects.toMatchObject({ code: 'rate-limit' })
+    ).rejects.toMatchObject({ code: 'rate-limit', httpStatus: 429 })
   })
 
   it('maps authentication failures', async () => {
@@ -76,7 +76,7 @@ describe('HttpAiClient', () => {
     const client = new HttpAiClient(settings)
     await expect(
       client.translateSentence({ sentence: 'Hello.' }, new AbortController().signal)
-    ).rejects.toMatchObject({ code: 'auth' })
+    ).rejects.toMatchObject({ code: 'auth', httpStatus: 401 })
   })
 
   it('maps forbidden responses to auth errors', async () => {
@@ -84,7 +84,7 @@ describe('HttpAiClient', () => {
     const client = new HttpAiClient(settings)
     await expect(
       client.translateSentence({ sentence: 'Hello.' }, new AbortController().signal)
-    ).rejects.toMatchObject({ code: 'auth' })
+    ).rejects.toMatchObject({ code: 'auth', httpStatus: 403 })
   })
 
   it('retries a 5xx response once and then succeeds', async () => {
@@ -138,6 +138,25 @@ describe('HttpAiClient', () => {
     await expect(
       client.translateSentence({ sentence: 'Hello.' }, controller.signal)
     ).rejects.toMatchObject({ code: 'timeout' })
+  })
+
+  it('distinguishes user cancellation from timeout', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((_input, init) => {
+      if (init?.signal?.aborted) {
+        return Promise.reject(new DOMException('Aborted', 'AbortError'))
+      }
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError'))
+        )
+      })
+    })
+    const client = new HttpAiClient(settings)
+    const controller = new AbortController()
+    controller.abort('user-cancel')
+    await expect(
+      client.translateSentence({ sentence: 'Hello.' }, controller.signal)
+    ).rejects.toMatchObject({ code: 'cancelled' })
   })
 
   it('distinguishes browser network or CORS failures', async () => {

@@ -86,9 +86,13 @@ export function readValidatedCache<T>(
 }
 
 function mapHttpError(status: number): AiClientError {
-  if (status === 401 || status === 403) return new AiClientError('auth', 'API Key 无效或权限不足')
-  if (status === 429) return new AiClientError('rate-limit', 'AI 请求过于频繁，请稍后重试')
-  return new AiClientError('server', 'AI 服务暂不可用')
+  if (status === 401 || status === 403) {
+    return new AiClientError('auth', 'API Key 无效或权限不足', status)
+  }
+  if (status === 429) {
+    return new AiClientError('rate-limit', 'AI 请求过于频繁，请稍后重试', status)
+  }
+  return new AiClientError('server', 'AI 服务暂不可用', status)
 }
 
 export class HttpAiClient implements AiClient {
@@ -168,7 +172,13 @@ export class HttpAiClient implements AiClient {
           throw error
         }
         if (signal.aborted) {
-          throw new AiClientError('timeout', 'AI 响应超时，已切换本地释义')
+          const code = signal.reason === 'user-cancel' ? 'cancelled' : 'timeout'
+          throw new AiClientError(
+            code,
+            code === 'cancelled'
+              ? '已停止生成；本地释义已保留。'
+              : 'AI 未在设定时间内响应；本地释义已保留。'
+          )
         }
         if (error instanceof TypeError) {
           throw new AiClientError(
@@ -229,8 +239,11 @@ export function withTimeout<T>(
   parentSignal?: AbortSignal
 ): Promise<T> {
   const controller = new AbortController()
-  const timer = window.setTimeout(() => controller.abort(), timeoutSeconds * 1000)
-  const abortFromParent = () => controller.abort()
+  const timer = window.setTimeout(
+    () => controller.abort('timeout'),
+    timeoutSeconds * 1000
+  )
+  const abortFromParent = () => controller.abort(parentSignal?.reason)
   parentSignal?.addEventListener('abort', abortFromParent, { once: true })
   return operation(controller.signal).finally(() => {
     window.clearTimeout(timer)

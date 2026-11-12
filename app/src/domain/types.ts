@@ -166,17 +166,20 @@ export type AiErrorCode =
   | 'offline'
   | 'network'
   | 'timeout'
+  | 'cancelled'
   | 'rate-limit'
   | 'server'
   | 'invalid-response'
 
 export class AiClientError extends Error {
   code: AiErrorCode
+  httpStatus?: number
 
-  constructor(code: AiErrorCode, message: string) {
+  constructor(code: AiErrorCode, message: string, httpStatus?: number) {
     super(message)
     this.name = 'AiClientError'
     this.code = code
+    this.httpStatus = httpStatus
   }
 }
 

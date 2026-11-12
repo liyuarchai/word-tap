@@ -65,6 +65,10 @@ API Key 只保存在当前浏览器的 IndexedDB，不进入 Markdown、JSON 或
 
 完整的获取与安全说明见项目根目录的 [`API-KEY-GUIDE.md`](../API-KEY-GUIDE.md)。
 
+### 点词 AI 状态
+
+点词语境解释使用 `validated-progressive` 展示模式：先等待完整模型响应，再通过 Zod 校验，最后按字段渐进展示。这不属于真实网络 SSE。等待或渐进展示期间可以停止生成；取消后不会写入结果或缓存。无 Key、离线、超时、限流、5xx 和非法结构均有独立状态，并且不会影响本地阅读、收藏、复习或导出。
+
 ## 本地词典
 
 `public/dictionary/dictionary.json` 是构建产物，来源为 npm 包 `ecdict@0.0.4` 所携带的 [skywind3000/ECDICT](https://github.com/skywind3000/ECDICT) 数据，许可为 MIT。

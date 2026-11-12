@@ -50,6 +50,31 @@ async function importDemo(
   await expect(page).toHaveURL(/\/reader\//)
 }
 
+async function configureAi(page: import('@playwright/test').Page) {
+  await page.goto('/settings')
+  await page.getByRole('button', { name: '配置' }).click()
+  await page.getByPlaceholder('粘贴 API Key').fill('test-key')
+  await page.getByLabel('接口地址').fill('https://api.example.com/v1')
+  await page.getByRole('button', { name: '保存设置' }).click()
+}
+
+async function aiCacheCount(page: import('@playwright/test').Page) {
+  return page.evaluate(
+    () =>
+      new Promise<number>((resolve, reject) => {
+        const open = indexedDB.open('wordtap')
+        open.onerror = () => reject(open.error)
+        open.onsuccess = () => {
+          const database = open.result
+          const transaction = database.transaction('aiCache', 'readonly')
+          const request = transaction.objectStore('aiCache').count()
+          request.onsuccess = () => resolve(request.result)
+          request.onerror = () => reject(request.error)
+        }
+      })
+  )
+}
+
 test('@smoke routes, navigation and unknown content render', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveURL(/\/library$/)
@@ -280,10 +305,23 @@ test('@api sends real request shape and falls back on errors', async ({ page }) 
 
   let requestBody: Record<string, unknown> | null = null
   let requestCount = 0
+  const requestKinds: string[] = []
   await page.route('https://api.example.com/v1/chat/completions', async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          'access-control-allow-origin': '*',
+          'access-control-allow-methods': 'POST, OPTIONS',
+          'access-control-allow-headers': 'content-type,authorization'
+        }
+      })
+      return
+    }
     requestCount += 1
     requestBody = route.request().postDataJSON() as Record<string, unknown>
     const isAnalysis = JSON.stringify(requestBody).includes('句法老师')
+    requestKinds.push(isAnalysis ? 'analysis' : 'word-or-translation')
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -325,7 +363,9 @@ test('@api sends real request shape and falls back on errors', async ({ page }) 
   expect(wordRequest).not.toContain('00:00:12,000')
   expect(wordRequest).not.toContain('contentTitle')
   expect(wordRequest).not.toContain('rawText')
-  expect(requestCount).toBe(1)
+  expect(requestCount, requestKinds.join(',')).toBe(1)
+  await expect.poll(() => aiCacheCount(page)).toBe(1)
+  await expect(page.getByRole('button', { name: '停止生成' })).toHaveCount(0)
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'resilient', exact: true }).click()
   await expect(page.getByText('在困难后仍能恢复的')).toBeVisible()
@@ -340,7 +380,9 @@ test('@api sends real request shape and falls back on errors', async ({ page }) 
   )
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'grasp', exact: true }).click()
-  await expect(page.getByText(/请求过于频繁/)).toBeVisible()
+  await expect(
+    page.getByRole('paragraph').filter({ hasText: '请求过于频繁' })
+  ).toBeVisible()
   await expect(page.getByText('本地词典', { exact: true }).last()).toBeVisible()
 })
 
@@ -430,5 +472,227 @@ test('@api discards late translation and analysis responses and reuses validated
   await page.waitForTimeout(800)
   await expect(page.getByText(/主干：旧主干/)).toHaveCount(0)
   expect(analysisCalls).toBe(2)
+})
+
+test('@mock AI state machine keeps local reading and review available without a key', async ({
+  page
+}) => {
+  await reset(page)
+  await importDemo(page)
+  await page.getByRole('button', { name: 'resilient', exact: true }).click()
+  const panel = page.getByRole('complementary', { name: '词卡详情' })
+  await expect(panel.getByRole('status')).toHaveCount(1)
+  await expect(
+    panel.getByRole('paragraph').filter({
+      hasText: '未配置 API Key；本地词典仍可使用。'
+    })
+  ).toBeVisible()
+  await expect(panel.getByRole('link', { name: '去配置' })).toBeVisible()
+  await panel.getByRole('button', { name: '加入生词本' }).click()
+  await page.goto('/review')
+  await expect(page.getByText('张词卡今天到期')).toBeVisible()
+})
+
+test('@mock offline AI failure keeps local dictionary and collection available', async ({
+  page,
+  context
+}) => {
+  await reset(page)
+  await configureAi(page)
+  await page.goto('/library')
+  await importDemo(page)
+  await context.setOffline(true)
+  await page.getByRole('button', { name: 'resilient', exact: true }).click()
+  const panel = page.getByRole('complementary', { name: '词卡详情' })
+  await expect(
+    panel.getByRole('paragraph').filter({
+      hasText: '当前网络不可用；本地词典、收藏和复习不受影响。'
+    })
+  ).toBeVisible()
+  await expect(panel.getByRole('button', { name: '加入生词本' })).toBeVisible()
+  await context.setOffline(false)
+})
+
+test('@api stop cancels waiting AI, writes no cache, retries, and then serves cache', async ({
+  page
+}) => {
+  await reset(page)
+  await configureAi(page)
+
+  let requestCount = 0
+  let notifyStarted!: () => void
+  const firstRequestStarted = new Promise<void>((resolve) => {
+    notifyStarted = resolve
+  })
+  let releaseFirst!: () => void
+  const firstRequestGate = new Promise<void>((resolve) => {
+    releaseFirst = resolve
+  })
+
+  await page.route('https://api.example.com/v1/chat/completions', async (route) => {
+    requestCount += 1
+    if (requestCount === 1) {
+      notifyStarted()
+      await firstRequestGate
+    }
+    try {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  contextMeaning: '在困难后仍能恢复的',
+                  clue: 'stay resilient',
+                  example: 'She stayed resilient.',
+                  exampleZh: '她仍然坚强。'
+                })
+              }
+            }
+          ]
+        })
+      })
+    } catch {
+      // The first request is intentionally aborted by the stop button.
+    }
+  })
+
+  await page.goto('/library')
+  await importDemo(page)
+  await page.getByRole('button', { name: 'resilient', exact: true }).click()
+  await firstRequestStarted
+  const panel = page.getByRole('complementary', { name: '词卡详情' })
+  await expect(panel.getByRole('button', { name: '停止生成' })).toBeVisible()
+  const saveButton = panel.getByRole('button', { name: '加入生词本' })
+  const waitingTop = (await saveButton.boundingBox())?.y
+
+  await panel.getByRole('button', { name: '停止生成' }).click()
+  await expect(
+    panel.getByRole('paragraph').filter({
+      hasText: '已停止生成；本地释义已保留。'
+    })
+  ).toBeVisible()
+  await expect(panel.getByRole('button', { name: '停止生成' })).toHaveCount(0)
+  releaseFirst()
+  await expect.poll(() => aiCacheCount(page)).toBe(0)
+
+  await panel.getByRole('button', { name: '重新生成' }).click()
+  await expect(panel.getByText('在困难后仍能恢复的')).toBeVisible()
+  await expect.poll(() => aiCacheCount(page)).toBe(1)
+  const completedTop = (await saveButton.boundingBox())?.y
+  expect(Math.abs((completedTop ?? 0) - (waitingTop ?? 0))).toBeLessThanOrEqual(8)
+
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'resilient', exact: true }).click()
+  await expect(panel.getByText('语境 · 已缓存')).toBeVisible()
+  expect(requestCount).toBe(2)
+})
+
+test('@api distinguishes 5xx and invalid AI responses while preserving local content', async ({
+  page
+}) => {
+  await reset(page)
+  await configureAi(page)
+
+  let serverCalls = 0
+  await page.route('https://api.example.com/v1/chat/completions', async (route) => {
+    const body = JSON.stringify(route.request().postDataJSON())
+    if (body.includes('单词：grasp')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          choices: [{ message: { content: 'not-json' } }]
+        })
+      })
+      return
+    }
+    serverCalls += 1
+    await route.fulfill({ status: 503, body: '' })
+  })
+
+  await page.goto('/library')
+  await importDemo(page)
+  await page.getByRole('button', { name: 'resilient', exact: true }).click()
+  const panel = page.getByRole('complementary', { name: '词卡详情' })
+  await expect(
+    panel.getByRole('paragraph').filter({ hasText: 'AI 服务暂时不可用。' })
+  ).toBeVisible()
+  expect(serverCalls).toBe(2)
+  await expect(panel.getByRole('button', { name: '重试' })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  await page.getByRole('button', { name: 'grasp', exact: true }).click()
+  await expect(
+    panel.getByRole('paragraph').filter({
+      hasText: 'AI 返回内容为空或无法校验。'
+    })
+  ).toBeVisible()
+  await expect(panel.getByRole('button', { name: '加入生词本' })).toBeVisible()
+})
+
+test('@api stop during validated progressive reveal clears output and skips cache', async ({
+  page
+}) => {
+  await reset(page)
+  await configureAi(page)
+  let requestCount = 0
+  await page.route('https://api.example.com/v1/chat/completions', async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          'access-control-allow-origin': '*',
+          'access-control-allow-methods': 'POST, OPTIONS',
+          'access-control-allow-headers': 'content-type,authorization'
+        }
+      })
+      return
+    }
+    requestCount += 1
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                contextMeaning: '在困难后仍能恢复的',
+                clue: 'stay resilient',
+                example: 'She stayed resilient.',
+                exampleZh: '她仍然坚强。'
+              })
+            }
+          }
+        ]
+      })
+    })
+  })
+
+  await page.goto('/library')
+  await importDemo(page)
+  await page.getByRole('button', { name: 'resilient', exact: true }).click()
+  const panel = page.getByRole('complementary', { name: '词卡详情' })
+  await expect(
+    panel.getByRole('paragraph').filter({
+      hasText: '正在呈现已校验的语境解释…'
+    })
+  ).toBeVisible()
+  const liveStatus = panel.getByRole('status')
+  await expect(liveStatus).toHaveCount(1)
+  const streamingAnnouncement = await liveStatus.textContent()
+  await expect(panel.getByText('在困难后仍能恢复的')).toBeVisible()
+  await expect(liveStatus).toHaveText(streamingAnnouncement ?? '')
+  await panel.getByRole('button', { name: '停止生成' }).click()
+  await expect(
+    panel.getByRole('paragraph').filter({
+      hasText: '已停止生成；本地释义已保留。'
+    })
+  ).toBeVisible()
+  await expect.poll(() => aiCacheCount(page)).toBe(0)
+  expect(requestCount).toBe(1)
 })
 
