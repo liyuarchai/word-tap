@@ -9,8 +9,13 @@ import type {
   Segment,
   VocabularyRecord
 } from '../../domain/types'
+import { analysisSchema, translationSchema } from '../../domain/schemas'
 import { formatTime } from '../../domain/review'
-import { withTimeout } from '../../services/ai'
+import {
+  createAiCacheKey,
+  readValidatedCache,
+  withTimeout
+} from '../../services/ai'
 import { buildLocalGloss } from '../../services/dictionary'
 import { MarkdownBlock } from './MarkdownBlock'
 import { WordPanel } from './WordPanel'
@@ -24,6 +29,18 @@ interface SegmentTranslationState {
   analysisMessage?: string
   localGloss?: string
   message?: string
+}
+
+interface ActiveAiOperation {
+  controller: AbortController
+  requestId: number
+  segmentIndex: number
+  kind: 'translate' | 'analysis'
+}
+
+function boundedText(text: string | undefined): string | undefined {
+  if (!text) return undefined
+  return Array.from(text).slice(0, 500).join('')
 }
 
 export function ReaderPage() {
@@ -47,6 +64,8 @@ export function ReaderPage() {
   const [translations, setTranslations] = useState<Record<number, SegmentTranslationState>>({})
   const scrollRef = useRef<HTMLDivElement>(null)
   const hideTimer = useRef<number | null>(null)
+  const activeOperations = useRef<Map<string, ActiveAiOperation>>(new Map())
+  const operationSequence = useRef(0)
 
   useEffect(() => {
     const found = contents.find((item) => item.id === contentId)
@@ -103,7 +122,69 @@ export function ReaderPage() {
     await refresh()
   }, [refresh, repository])
 
-  const translate = async (segment: Segment) => {
+  const getBoundedContext = (segment: Segment) => {
+    if (!content) return { contextBefore: undefined, contextAfter: undefined }
+    return {
+      contextBefore: boundedText(content.segments[segment.index - 1]?.text),
+      contextAfter: boundedText(content.segments[segment.index + 1]?.text)
+    }
+  }
+
+  const abortAllOperations = useCallback(() => {
+    for (const operation of activeOperations.current.values()) {
+      operation.controller.abort()
+    }
+    activeOperations.current.clear()
+  }, [])
+
+  useEffect(() => {
+    return () => abortAllOperations()
+  }, [abortAllOperations, contentId])
+
+  useEffect(() => {
+    for (const [key, operation] of activeOperations.current) {
+      if (operation.segmentIndex === currentIndex) continue
+      operation.controller.abort()
+      activeOperations.current.delete(key)
+    }
+  }, [currentIndex])
+
+  const beginOperation = (segment: Segment, kind: ActiveAiOperation['kind']) => {
+    const key = `${segment.index}:${kind}`
+    for (const [activeKey, operation] of activeOperations.current) {
+      if (activeKey === key || operation.segmentIndex !== segment.index) {
+        operation.controller.abort()
+        activeOperations.current.delete(activeKey)
+      }
+    }
+    const operation: ActiveAiOperation = {
+      controller: new AbortController(),
+      requestId: ++operationSequence.current,
+      segmentIndex: segment.index,
+      kind
+    }
+    activeOperations.current.set(key, operation)
+    return { key, operation }
+  }
+
+  const isCurrentOperation = (key: string, operation: ActiveAiOperation) => {
+    const active = activeOperations.current.get(key)
+    return (
+      !operation.controller.signal.aborted &&
+      active?.requestId === operation.requestId &&
+      active.kind === operation.kind &&
+      active.segmentIndex === operation.segmentIndex
+    )
+  }
+
+  const finishOperation = (key: string, operation: ActiveAiOperation) => {
+    if (activeOperations.current.get(key)?.requestId === operation.requestId) {
+      activeOperations.current.delete(key)
+    }
+  }
+
+  const translate = async (segment: Segment, force = false) => {
+    const context = getBoundedContext(segment)
     if (!aiEnabled) {
       const gloss = await buildLocalGloss(segment.text)
       setTranslations((current) => ({
@@ -116,14 +197,52 @@ export function ReaderPage() {
       }))
       return
     }
+    const { key, operation } = beginOperation(segment, 'translate')
     setTranslations((current) => ({
       ...current,
       [segment.index]: { ...current[segment.index], status: 'loading' }
     }))
     try {
-      const result = await withTimeout(settings.timeoutSeconds, (signal) =>
-        aiClient.translateSentence({ sentence: segment.text }, signal)
+      const cacheKey = await createAiCacheKey({
+        operation: 'translate',
+        apiBaseUrl: settings.apiBaseUrl,
+        model: settings.model,
+        target: segment.text,
+        ...context
+      })
+      if (!force) {
+        const cached = readValidatedCache(
+          await repository.getAiCache(cacheKey),
+          translationSchema
+        )
+        if (cached && isCurrentOperation(key, operation)) {
+          setTranslations((current) => ({
+            ...current,
+            [segment.index]: {
+              ...current[segment.index],
+              status: 'success',
+              translation: cached.translation
+            }
+          }))
+          return
+        }
+      }
+      const result = await withTimeout(
+        settings.timeoutSeconds,
+        (signal) =>
+          aiClient.translateSentence(
+            { sentence: segment.text, ...context },
+            signal
+          ),
+        operation.controller.signal
       )
+      if (!isCurrentOperation(key, operation)) return
+      await repository.putAiCache({
+        key: cacheKey,
+        operation: 'translate',
+        payload: result,
+        createdAt: new Date().toISOString()
+      })
       setTranslations((current) => ({
         ...current,
         [segment.index]: {
@@ -133,7 +252,9 @@ export function ReaderPage() {
         }
       }))
     } catch (error) {
+      if (!isCurrentOperation(key, operation)) return
       const gloss = await buildLocalGloss(segment.text)
+      if (!isCurrentOperation(key, operation)) return
       setTranslations((current) => ({
         ...current,
         [segment.index]: {
@@ -143,11 +264,15 @@ export function ReaderPage() {
           localGloss: gloss
         }
       }))
+    } finally {
+      finishOperation(key, operation)
     }
   }
 
-  const analyze = async (segment: Segment) => {
+  const analyze = async (segment: Segment, force = false) => {
     if (!aiEnabled) return
+    const context = getBoundedContext(segment)
+    const { key, operation } = beginOperation(segment, 'analysis')
     setTranslations((current) => ({
       ...current,
       [segment.index]: {
@@ -156,9 +281,47 @@ export function ReaderPage() {
       }
     }))
     try {
-      const result = await withTimeout(settings.timeoutSeconds, (signal) =>
-        aiClient.analyzeSentence({ sentence: segment.text }, signal)
+      const cacheKey = await createAiCacheKey({
+        operation: 'analysis',
+        apiBaseUrl: settings.apiBaseUrl,
+        model: settings.model,
+        target: segment.text,
+        ...context
+      })
+      if (!force) {
+        const cached = readValidatedCache(
+          await repository.getAiCache(cacheKey),
+          analysisSchema
+        )
+        if (cached && isCurrentOperation(key, operation)) {
+          setTranslations((current) => ({
+            ...current,
+            [segment.index]: {
+              ...current[segment.index],
+              analysis: cached,
+              analysisStatus: 'success',
+              analysisMessage: undefined
+            }
+          }))
+          return
+        }
+      }
+      const result = await withTimeout(
+        settings.timeoutSeconds,
+        (signal) =>
+          aiClient.analyzeSentence(
+            { sentence: segment.text, ...context },
+            signal
+          ),
+        operation.controller.signal
       )
+      if (!isCurrentOperation(key, operation)) return
+      await repository.putAiCache({
+        key: cacheKey,
+        operation: 'analysis',
+        payload: result,
+        createdAt: new Date().toISOString()
+      })
       setTranslations((current) => ({
         ...current,
         [segment.index]: {
@@ -168,6 +331,7 @@ export function ReaderPage() {
         }
       }))
     } catch (error) {
+      if (!isCurrentOperation(key, operation)) return
       setTranslations((current) => ({
         ...current,
         [segment.index]: {
@@ -177,6 +341,8 @@ export function ReaderPage() {
             error instanceof Error ? error.message : '精析暂不可用，请稍后重试。'
         }
       }))
+    } finally {
+      finishOperation(key, operation)
     }
   }
 
@@ -299,7 +465,7 @@ export function ReaderPage() {
                       <button
                         className={styles.textButton}
                         type="button"
-                        onClick={() => void translate(segment)}
+                        onClick={() => void translate(segment, Boolean(translation?.translation))}
                       >
                         {translation?.translation ? '重新翻译' : '翻译本句'}
                       </button>
@@ -344,7 +510,7 @@ export function ReaderPage() {
                         <button
                           className={styles.textButton}
                           type="button"
-                          onClick={() => void analyze(segment)}
+                          onClick={() => void analyze(segment, Boolean(translation?.analysis))}
                         >
                           重试
                         </button>
@@ -368,6 +534,7 @@ export function ReaderPage() {
           content={content}
           segment={selected.segment}
           word={selected.word}
+          {...getBoundedContext(selected.segment)}
           onClose={() => setSelected(null)}
           onSave={saveVocabulary}
           onUpdate={updateVocabulary}

@@ -13,6 +13,7 @@ import {
   translationSchema,
   wordExplanationSchema
 } from '../domain/schemas'
+import { sha256 } from '../domain/text'
 
 function buildContext(input: { sentence: string; contextBefore?: string; contextAfter?: string }) {
   return [
@@ -39,6 +40,49 @@ function extractJson(content: string): unknown {
 
 function joinEndpoint(baseUrl: string): string {
   return `${baseUrl.replace(/\/+$/, '')}/chat/completions`
+}
+
+export type AiCacheOperation = 'word' | 'translate' | 'analysis'
+
+export interface AiCacheKeyInput {
+  operation: AiCacheOperation
+  apiBaseUrl: string
+  model: string
+  target: string
+  contextBefore?: string
+  contextAfter?: string
+}
+
+export function normalizeApiBaseUrl(baseUrl: string): string {
+  return baseUrl.trim().replace(/\/+$/, '')
+}
+
+export async function createAiCacheKey(input: AiCacheKeyInput): Promise<string> {
+  const [targetHash, beforeHash, afterHash] = await Promise.all([
+    sha256(input.target),
+    sha256(input.contextBefore ?? ''),
+    sha256(input.contextAfter ?? '')
+  ])
+  return sha256(
+    [
+      'ai-cache:v2',
+      input.operation,
+      normalizeApiBaseUrl(input.apiBaseUrl),
+      input.model.trim(),
+      targetHash,
+      beforeHash,
+      afterHash
+    ].join('|')
+  )
+}
+
+export function readValidatedCache<T>(
+  record: { payload: unknown } | undefined,
+  schema: z.ZodType<T>
+): T | null {
+  if (!record) return null
+  const result = schema.safeParse(record.payload)
+  return result.success ? result.data : null
 }
 
 function mapHttpError(status: number): AiClientError {

@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Settings } from '../domain/types'
-import { HttpAiClient } from './ai'
+import { translationSchema } from '../domain/schemas'
+import {
+  createAiCacheKey,
+  HttpAiClient,
+  readValidatedCache
+} from './ai'
 
 const settings: Settings = {
   id: 'app',
@@ -211,6 +216,38 @@ describe('HttpAiClient', () => {
       response_format: { type: 'json_object' },
       max_tokens: 800
     })
+  })
+})
+
+describe('AI cache isolation', () => {
+  const base = {
+    operation: 'translate' as const,
+    apiBaseUrl: 'https://api.example.com/v1',
+    model: 'model-a',
+    target: 'A shared sentence.',
+    contextBefore: 'Before.',
+    contextAfter: 'After.'
+  }
+
+  it('normalizes trailing URL slashes', async () => {
+    await expect(createAiCacheKey(base)).resolves.toBe(
+      await createAiCacheKey({ ...base, apiBaseUrl: `${base.apiBaseUrl}///` })
+    )
+  })
+
+  it('isolates provider, model and bounded context', async () => {
+    const key = await createAiCacheKey(base)
+    expect(await createAiCacheKey({ ...base, apiBaseUrl: 'https://api.other.com/v1' })).not.toBe(key)
+    expect(await createAiCacheKey({ ...base, model: 'model-b' })).not.toBe(key)
+    expect(await createAiCacheKey({ ...base, contextAfter: 'Changed.' })).not.toBe(key)
+  })
+
+  it('rejects malformed cached payloads', () => {
+    expect(readValidatedCache(undefined, translationSchema)).toBeNull()
+    expect(readValidatedCache({ payload: { translation: '' } }, translationSchema)).toBeNull()
+    expect(
+      readValidatedCache({ payload: { translation: '有效译文' } }, translationSchema)
+    ).toEqual({ translation: '有效译文' })
   })
 })
 

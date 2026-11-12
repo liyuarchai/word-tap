@@ -1,4 +1,5 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useApp } from '../../app/useApp'
 import { ConfirmDialog } from '../../components/Dialog'
 import { Icon } from '../../components/Icon'
@@ -10,8 +11,10 @@ type Filter = 'all' | 'due' | 'future'
 
 export function NotebookPage() {
   const { vocabulary, contents, repository, refresh, loading, notify } = useApp()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [query, setQuery] = useState('')
-  const deferredQuery = useDeferredValue(query)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchTimer = useRef<number | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
   const [source, setSource] = useState('all')
   const [selected, setSelected] = useState<VocabularyRecord | null>(null)
@@ -21,8 +24,14 @@ export function NotebookPage() {
   const [deleting, setDeleting] = useState<VocabularyRecord | null>(null)
   const [saving, setSaving] = useState(false)
 
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) window.clearTimeout(searchTimer.current)
+    }
+  }, [])
+
   const filtered = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase()
+    const needle = query.trim().toLowerCase()
     return vocabulary.filter((item) => {
       if (source !== 'all' && item.contentId !== source) return false
       const due = isDueToday(item)
@@ -34,14 +43,37 @@ export function NotebookPage() {
         .toLowerCase()
         .includes(needle)
     })
-  }, [deferredQuery, filter, source, vocabulary])
+  }, [filter, query, source, vocabulary])
 
-  const open = (record: VocabularyRecord) => {
+  const scheduleSearch = (value: string) => {
+    if (searchTimer.current) window.clearTimeout(searchTimer.current)
+    searchTimer.current = window.setTimeout(() => {
+      searchTimer.current = null
+      setQuery(value)
+    }, 150)
+  }
+
+  const open = useCallback((record: VocabularyRecord) => {
     setSelected(record)
     setWord(record.word)
     setDefinition(record.userDefinition)
     setNote(record.note)
-  }
+  }, [])
+
+  useEffect(() => {
+    if (loading) return
+    const cardId = searchParams.get('card')
+    if (!cardId) return
+    const record = vocabulary.find((item) => item.id === cardId)
+    const timer = window.setTimeout(() => {
+      if (record) open(record)
+      else notify('词卡不存在或已删除')
+    }, 0)
+    const next = new URLSearchParams(searchParams)
+    next.delete('card')
+    setSearchParams(next, { replace: true })
+    return () => window.clearTimeout(timer)
+  }, [loading, notify, open, searchParams, setSearchParams, vocabulary])
 
   const save = async () => {
     if (!selected || !word.trim()) return
@@ -85,11 +117,12 @@ export function NotebookPage() {
           <Icon name="search" size={20} />
           <span className={styles.srOnly}>搜索生词</span>
           <input
+            ref={searchInputRef}
             className={styles.searchInput}
             type="search"
-            value={query}
+            defaultValue=""
             placeholder="搜单词、释义或句子"
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => scheduleSearch(event.target.value)}
           />
         </label>
         <select
@@ -151,6 +184,7 @@ export function NotebookPage() {
             type="button"
             onClick={() => {
               setQuery('')
+              if (searchInputRef.current) searchInputRef.current.value = ''
               setFilter('all')
               setSource('all')
             }}

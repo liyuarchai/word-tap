@@ -150,9 +150,9 @@ export function LibraryPage() {
         </span>
       </button>
 
-      <div className={styles.libraryList} aria-label="全部内容">
+      <div className={styles.libraryList} role="list" aria-label="全部内容">
         {rest.map((content) => (
-          <div key={content.id} className={styles.libraryRow}>
+          <div key={content.id} className={styles.libraryRow} role="listitem">
             <button className={styles.rowMain} type="button" onClick={() => void openContent(content)}>
               <span className={styles.rowTitle}>{content.title}</span>
               <span className={styles.rowMeta}>

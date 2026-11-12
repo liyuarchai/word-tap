@@ -191,6 +191,8 @@
 .textButton,
 .dangerButton {
   padding: 0 4px;
+  border: 0;
+  background: transparent;
   color: var(--ink-3);
   text-decoration: underline;
   text-decoration-color: transparent;
@@ -521,6 +523,11 @@
   pointer-events: none;
 }
 
+.readerChrome:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .readerTitle {
   max-width: 30vw;
   overflow: hidden;
@@ -589,15 +596,15 @@
 }
 
 .subtitleSegment:not(.segmentCurrent) {
-  opacity: 0.38;
+  color: var(--ink-2);
 }
 
-.segment:hover {
-  opacity: 1;
+.subtitleSegment:not(.segmentCurrent):hover {
+  color: var(--ink);
 }
 
 .segmentCurrent {
-  opacity: 1;
+  color: var(--ink);
 }
 
 .segmentText :where(h1, h2, h3, p, blockquote, ul, ol) {
@@ -671,6 +678,7 @@
 }
 
 .wordButton {
+  position: relative;
   display: inline;
   min-width: 0;
   min-height: 0;
@@ -683,9 +691,25 @@
   text-align: inherit;
 }
 
+.wordButton::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 24px);
+  height: max(100%, 24px);
+  border-radius: 4px;
+  content: '';
+  transform: translate(-50%, -50%);
+}
+
 .wordButton:hover,
 .selectedWord {
   background: var(--highlight);
+}
+
+.wordButton:focus-visible::before {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .selectedWord {

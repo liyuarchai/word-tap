@@ -5,6 +5,27 @@ import { resolve } from 'node:path'
 import writeExcelFile from 'write-excel-file/node'
 import { demoSrt } from './fixtures'
 
+const boundedContextSrt = `1
+00:00:00,000 --> 00:00:06,000
+A quiet morning opened the story.
+
+2
+00:00:06,000 --> 00:00:12,000
+The team stayed resilient through a year nobody expected.
+
+3
+00:00:12,000 --> 00:00:18,000
+I couldn't grasp why she left without a word.
+
+4
+00:00:18,000 --> 00:00:24,000
+We binge-watched the whole season in one weekend.
+
+5
+00:00:24,000 --> 00:00:30,000
+FAR-AWAY-SENTINEL belongs after the final target.
+`
+
 async function reset(page: import('@playwright/test').Page, mock = false) {
   const target = mock ? '/library?mock=1' : '/library'
   await page.goto(target)
@@ -19,9 +40,12 @@ async function reset(page: import('@playwright/test').Page, mock = false) {
   await page.goto(target)
 }
 
-async function importDemo(page: import('@playwright/test').Page) {
+async function importDemo(
+  page: import('@playwright/test').Page,
+  content = demoSrt
+) {
   await page.getByRole('button', { name: '导入内容' }).click()
-  await page.getByLabel('粘贴英文内容').fill(demoSrt)
+  await page.getByLabel('粘贴英文内容').fill(content)
   await page.getByRole('button', { name: '开始阅读' }).click()
   await expect(page).toHaveURL(/\/reader\//)
 }
@@ -75,6 +99,11 @@ test('@visual responsive app has no horizontal overflow and word panel does not 
   expect(after?.width).toBe(before?.width)
   await page.keyboard.press('Escape')
   await expect(page.getByRole('complementary', { name: '词卡详情' })).toBeHidden()
+  const chrome = page.locator('header').first()
+  await page.waitForTimeout(3300)
+  await expect.poll(() => chrome.evaluate((element) => getComputedStyle(element).opacity)).toBe('0')
+  await page.getByRole('button', { name: '返回内容库' }).focus()
+  await expect.poll(() => chrome.evaluate((element) => getComputedStyle(element).opacity)).toBe('1')
   const undersizedControls = await page
     .locator('button:not([class*="wordButton"]), a[href]')
     .evaluateAll((controls) =>
@@ -86,6 +115,19 @@ test('@visual responsive app has no horizontal overflow and word panel does not 
         .map((element) => element.textContent?.trim())
     )
   expect(undersizedControls).toEqual([])
+  const undersizedWordHits = await page
+    .locator('button[class*="wordButton"]')
+    .evaluateAll((buttons) =>
+      buttons
+        .filter((element) => {
+          const rect = element.getBoundingClientRect()
+          if (rect.width === 0 || rect.height === 0) return false
+          const pseudo = getComputedStyle(element, '::before')
+          return parseFloat(pseudo.width) < 24 || parseFloat(pseudo.height) < 24
+        })
+        .map((element) => element.textContent?.trim())
+    )
+  expect(undersizedWordHits).toEqual([])
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('button', { name: 'resilient', exact: true }).click()
   const mobilePanel = page.getByRole('complementary', { name: '词卡详情' })
@@ -95,8 +137,17 @@ test('@visual responsive app has no horizontal overflow and word panel does not 
   expect(panelBox?.height).toBeLessThanOrEqual(844 * 0.62)
   await page.screenshot({ path: 'test-results/mobile-reader-panel.png', fullPage: true })
   await page.keyboard.press('Escape')
-  const results = await new AxeBuilder({ page }).analyze()
-  expect(results.violations.filter((item) => item.impact === 'critical')).toHaveLength(0)
+  const readerUrl = page.url()
+  for (const route of [readerUrl, '/library', '/notebook', '/review', '/settings']) {
+    await page.goto(route)
+    const results = await new AxeBuilder({ page }).analyze()
+    expect(
+      results.violations.filter(
+        (item) => item.impact === 'serious' || item.impact === 'critical'
+      ),
+      `${route} has serious or critical accessibility violations`
+    ).toHaveLength(0)
+  }
 })
 
 test('@mock import, collect three words, edit, review and export Obsidian', async ({ page }) => {
@@ -202,6 +253,23 @@ test('@mock import, collect three words, edit, review and export Obsidian', asyn
   await expect(page.getByText('resilient · 有韧性的')).toBeVisible()
 })
 
+test('@mock saved vocabulary can be opened from the reader', async ({ page }) => {
+  await reset(page, true)
+  await importDemo(page)
+  await page.getByRole('button', { name: 'resilient', exact: true }).click()
+  await page.getByRole('button', { name: '加入生词本' }).click()
+  await page.getByRole('button', { name: '已在生词本 · 查看' }).click()
+  await expect(page).toHaveURL(/\/notebook$/)
+  const drawer = page.getByRole('complementary', { name: '词卡详情' })
+  await expect(drawer).toBeVisible()
+  await expect(drawer.getByLabel('备注')).toBeVisible()
+  await drawer.getByRole('button', { name: '关闭' }).click()
+
+  await page.goto('/notebook?card=missing-card')
+  await expect(page.getByText('词卡不存在或已删除').last()).toBeVisible()
+  await expect(page).toHaveURL(/\/notebook$/)
+})
+
 test('@api sends real request shape and falls back on errors', async ({ page }) => {
   await reset(page)
   await page.goto('/settings')
@@ -246,12 +314,17 @@ test('@api sends real request shape and falls back on errors', async ({ page }) 
     })
   })
   await page.goto('/library')
-  await page.getByRole('button', { name: '导入内容' }).click()
-  await page.getByLabel('粘贴英文内容').fill(demoSrt)
-  await page.getByRole('button', { name: '开始阅读' }).click()
+  await importDemo(page, boundedContextSrt)
   await page.getByRole('button', { name: 'resilient', exact: true }).click()
   await expect(page.getByText('在困难后仍能恢复的')).toBeVisible()
   expect(requestBody).toMatchObject({ model: 'gpt-4o-mini', stream: false, temperature: 0.2 })
+  const wordRequest = JSON.stringify(requestBody)
+  expect(wordRequest).toContain('A quiet morning opened the story.')
+  expect(wordRequest).toContain("I couldn't grasp why she left without a word.")
+  expect(wordRequest).not.toContain('FAR-AWAY-SENTINEL')
+  expect(wordRequest).not.toContain('00:00:12,000')
+  expect(wordRequest).not.toContain('contentTitle')
+  expect(wordRequest).not.toContain('rawText')
   expect(requestCount).toBe(1)
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'resilient', exact: true }).click()
@@ -269,5 +342,93 @@ test('@api sends real request shape and falls back on errors', async ({ page }) 
   await page.getByRole('button', { name: 'grasp', exact: true }).click()
   await expect(page.getByText(/请求过于频繁/)).toBeVisible()
   await expect(page.getByText('本地词典', { exact: true }).last()).toBeVisible()
+})
+
+test('@api discards late translation and analysis responses and reuses validated cache', async ({
+  page
+}) => {
+  await reset(page)
+  await page.goto('/settings')
+  await page.getByRole('button', { name: '配置' }).click()
+  await page.getByPlaceholder('粘贴 API Key').fill('test-key')
+  await page.getByLabel('接口地址').fill('https://api.example.com/v1')
+  await page.getByRole('button', { name: '保存设置' }).click()
+
+  let translateCalls = 0
+  let analysisCalls = 0
+  await page.route('https://api.example.com/v1/chat/completions', async (route) => {
+    const body = JSON.stringify(route.request().postDataJSON())
+    if (body.includes('英译中')) {
+      const call = ++translateCalls
+      await new Promise((resolve) => setTimeout(resolve, call === 1 ? 700 : 50))
+      const translation = call === 1 ? '旧译文' : '新译文'
+      try {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            choices: [
+              { message: { content: JSON.stringify({ translation }) } }
+            ]
+          })
+        })
+      } catch {
+        // The first request is intentionally aborted by the second click.
+      }
+      return
+    }
+    if (body.includes('句法老师')) {
+      const call = ++analysisCalls
+      await new Promise((resolve) => setTimeout(resolve, call === 1 ? 700 : 50))
+      const mainClause = call === 1 ? '旧主干' : '新主干'
+      try {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    mainClause,
+                    logic: '',
+                    phrases: '',
+                    hardPoints: '',
+                    naturalZh: ''
+                  })
+                }
+              }
+            ]
+          })
+        })
+      } catch {
+        // The first request is intentionally aborted by the second click.
+      }
+      return
+    }
+    await route.fulfill({ status: 500, body: '' })
+  })
+
+  await page.goto('/library')
+  await importDemo(page)
+  await page.getByRole('button', { name: '翻译本句' }).first().click()
+  await page.waitForTimeout(50)
+  await page.getByRole('button', { name: '重新翻译' }).first().click()
+  await expect(page.getByText('新译文')).toBeVisible()
+  await page.waitForTimeout(800)
+  await expect(page.getByText('旧译文')).toHaveCount(0)
+
+  await page.reload()
+  await page.getByRole('button', { name: '翻译本句' }).first().click()
+  await expect(page.getByText('新译文')).toBeVisible()
+  expect(translateCalls).toBe(2)
+
+  await page.getByRole('button', { name: '深入分析' }).first().click()
+  await page.waitForTimeout(50)
+  await page.getByRole('button', { name: '深入分析' }).first().click()
+  await expect(page.getByText(/主干：新主干/)).toBeVisible()
+  await page.waitForTimeout(800)
+  await expect(page.getByText(/主干：旧主干/)).toHaveCount(0)
+  expect(analysisCalls).toBe(2)
 })
 

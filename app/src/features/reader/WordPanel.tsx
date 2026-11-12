@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../app/useApp'
 import { Icon } from '../../components/Icon'
 import type {
@@ -8,8 +9,13 @@ import type {
   WordExplanation
 } from '../../domain/types'
 import { AiClientError } from '../../domain/types'
+import { wordExplanationSchema } from '../../domain/schemas'
 import { sha256 } from '../../domain/text'
-import { withTimeout } from '../../services/ai'
+import {
+  createAiCacheKey,
+  readValidatedCache,
+  withTimeout
+} from '../../services/ai'
 import { lookupWord } from '../../services/dictionary'
 import styles from '../../styles/app.module.css'
 
@@ -23,6 +29,8 @@ export function WordPanel({
   content,
   segment,
   word,
+  contextBefore,
+  contextAfter,
   onClose,
   onSave,
   onUpdate
@@ -30,11 +38,14 @@ export function WordPanel({
   content: ContentRecord
   segment: Segment
   word: string
+  contextBefore?: string
+  contextAfter?: string
   onClose: () => void
   onSave: (vocabulary: VocabularyRecord) => Promise<VocabularyRecord>
   onUpdate: (vocabulary: VocabularyRecord) => Promise<void>
 }) {
   const { aiClient, aiEnabled, settings, repository, vocabulary } = useApp()
+  const navigate = useNavigate()
   const [lemma, setLemma] = useState(word.toLowerCase())
   const [localDefinition, setLocalDefinition] = useState('正在查询本地词典…')
   const [localMeta, setLocalMeta] = useState('')
@@ -66,6 +77,19 @@ export function WordPanel({
           return
         }
         setLemma(result.lemma)
+        if (!savedRef.current) {
+          const existing = vocabulary.find(
+            (item) =>
+              item.contentId === content.id &&
+              item.segmentId === segment.id &&
+              (item.lemma === result.lemma ||
+                item.word.toLowerCase() === word.toLowerCase())
+          )
+          if (existing) {
+            savedRef.current = existing
+            setSaved(existing)
+          }
+        }
         setLocalDefinition(result.entry.translation || result.entry.definition || '暂无中文释义')
         setLocalMeta(
           [result.entry.phonetic ? `/${result.entry.phonetic}/` : '', result.entry.pos]
@@ -83,7 +107,7 @@ export function WordPanel({
     return () => {
       cancelled = true
     }
-  }, [word])
+  }, [content.id, segment.id, vocabulary, word])
 
   useEffect(() => {
     if (!aiEnabled) {
@@ -94,19 +118,38 @@ export function WordPanel({
     let cancelled = false
     void (async () => {
       try {
-        const cacheKey = await sha256(`word|${lemma}|${segment.text}|${settings.model}`)
+        const cacheKey = await createAiCacheKey({
+          operation: 'word',
+          apiBaseUrl: settings.apiBaseUrl,
+          model: settings.model,
+          target: `${lemma}|${segment.text}`,
+          contextBefore,
+          contextAfter
+        })
         const cached = await repository.getAiCache(cacheKey)
-        if (cached) {
+        const cachedResult = readValidatedCache(cached, wordExplanationSchema)
+        if (cachedResult) {
+          if (cancelled) return
           setAiState({
             status: 'success',
-            result: cached.payload as WordExplanation,
+            result: cachedResult,
             cached: true
           })
           return
         }
         const result = await withTimeout(
           settings.timeoutSeconds,
-          (signal) => aiClient.explainWord({ word, lemma, sentence: segment.text }, signal),
+          (signal) =>
+            aiClient.explainWord(
+              {
+                word,
+                lemma,
+                sentence: segment.text,
+                contextBefore,
+                contextAfter
+              },
+              signal
+            ),
           controller.signal
         )
         if (cancelled) return
@@ -146,11 +189,14 @@ export function WordPanel({
   }, [
     aiClient,
     aiEnabled,
+    contextAfter,
+    contextBefore,
     lemma,
     onUpdate,
     repository,
     retryToken,
     segment.text,
+    settings.apiBaseUrl,
     settings.model,
     settings.timeoutSeconds,
     word
@@ -197,6 +243,14 @@ export function WordPanel({
     } finally {
       setSaving(false)
     }
+  }
+
+  const handlePrimaryAction = () => {
+    if (saved) {
+      navigate(`/notebook?card=${encodeURIComponent(saved.id)}`)
+      return
+    }
+    void addWord()
   }
 
   return (
@@ -279,7 +333,7 @@ export function WordPanel({
           }`}
           type="button"
           disabled={saving}
-          onClick={() => void addWord()}
+          onClick={handlePrimaryAction}
         >
           {saved ? '已在生词本 · 查看' : saving ? '正在保存…' : '加入生词本'}
         </button>
