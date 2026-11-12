@@ -1,0 +1,15 @@
+node_modules/
+.pnpm-store/
+app/node_modules/
+app/dist/
+app/coverage/
+app/playwright-report/
+app/test-results/
+app/.vite/
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!/.env.example
+
