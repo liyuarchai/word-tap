@@ -33,7 +33,21 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/index.html',
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
-        runtimeCaching: [],
+        globIgnores: ['ocr/**'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/ocr\/.*\.(?:js|wasm|gz)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'wordtap-ocr-assets-v1',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 30
+              },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          }
+        ],
         globPatterns: ['**/*.{js,css,html,woff2,json,svg}']
       }
     })

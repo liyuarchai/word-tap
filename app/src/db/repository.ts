@@ -1,4 +1,4 @@
-import { backupSchema } from '../domain/schemas'
+import { backupSchema, settingsSchema } from '../domain/schemas'
 import type {
   AiCacheRecord,
   AppRepository,
@@ -10,6 +10,10 @@ import type {
   Settings,
   VocabularyRecord
 } from '../domain/types'
+import {
+  DEFAULT_READING_PREFERENCES,
+  type ReadingPreferences
+} from '../domain/types'
 import { db } from './db'
 
 export const defaultSettings = (): Settings => ({
@@ -20,6 +24,12 @@ export const defaultSettings = (): Settings => ({
   timeoutSeconds: 10,
   updatedAt: new Date().toISOString()
 })
+
+export function mergeReadingPreferences(
+  preferences?: Partial<ReadingPreferences>
+): ReadingPreferences {
+  return { ...DEFAULT_READING_PREFERENCES, ...preferences }
+}
 
 function backupPreview(backup: BackupV1, current: {
   contents: ContentRecord[]
@@ -133,11 +143,17 @@ export class DexieRepository implements AppRepository {
   }
 
   async getSettings() {
-    return (await db.settings.get('app')) ?? defaultSettings()
+    const stored = await db.settings.get('app')
+    if (!stored) return defaultSettings()
+    return settingsSchema.parse({ ...defaultSettings(), ...stored })
   }
 
   async saveSettings(settings: Settings) {
-    await db.settings.put(settings)
+    const parsed = settingsSchema.parse(settings)
+    if (parsed.readingPreferences) {
+      parsed.readingPreferences = mergeReadingPreferences(parsed.readingPreferences)
+    }
+    await db.settings.put(parsed)
   }
 
   async getAiCache(key: string) {
@@ -173,7 +189,8 @@ export class DexieRepository implements AppRepository {
         settings: {
           apiBaseUrl: settings.apiBaseUrl,
           model: settings.model,
-          timeoutSeconds: settings.timeoutSeconds
+          timeoutSeconds: settings.timeoutSeconds,
+          readingPreferences: settings.readingPreferences
         }
       }
     }
@@ -249,12 +266,18 @@ export class DexieRepository implements AppRepository {
             })
           }
         }
-        await db.settings.put({
+        const importedSettings: Settings = {
           ...parsed.data.settings,
           id: 'app',
           apiKey: localSettings.apiKey,
           updatedAt: new Date().toISOString()
-        })
+        }
+        if (parsed.data.settings.readingPreferences) {
+          importedSettings.readingPreferences = mergeReadingPreferences(
+            parsed.data.settings.readingPreferences
+          )
+        }
+        await db.settings.put(importedSettings)
       }
     )
     return preview

@@ -42,3 +42,24 @@ if (!File.prototype.arrayBuffer) {
   })
 }
 
+if (!Blob.prototype.arrayBuffer) {
+  Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+    value() {
+      return new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as ArrayBuffer)
+        reader.onerror = () => reject(reader.error)
+        reader.readAsArrayBuffer(this)
+      })
+    }
+  })
+}
+
+if (!Blob.prototype.stream) {
+  Object.defineProperty(Blob.prototype, 'stream', {
+    value() {
+      return new Response(this).body
+    }
+  })
+}
+

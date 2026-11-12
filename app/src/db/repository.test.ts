@@ -95,6 +95,69 @@ describe('Dexie repository', () => {
     expect(await repository.getVocabulary('v1')).toBeDefined()
   })
 
+  it('preserves absence of reading preferences so the reader can apply legacy defaults', async () => {
+    await db.settings.put({
+      id: 'app',
+      apiBaseUrl: 'https://api.example.com/v1',
+      apiKey: 'secret-key',
+      model: 'test-model',
+      timeoutSeconds: 10,
+      updatedAt: now
+    })
+    expect((await repository.getSettings()).readingPreferences).toBeUndefined()
+  })
+
+  it('backs up non-sensitive reading preferences but never the API key', async () => {
+    await repository.saveSettings({
+      id: 'app',
+      apiBaseUrl: 'https://api.example.com/v1',
+      apiKey: 'secret-key',
+      model: 'test-model',
+      timeoutSeconds: 10,
+      readingPreferences: {
+        fontFamily: 'sans',
+        fontSize: 22,
+        margin: 'large',
+        lineHeight: 'loose',
+        firstLineIndent: true,
+        theme: 'night',
+        brightness: 'dim'
+      },
+      updatedAt: now
+    })
+    const backup = await repository.exportBackup()
+    expect(backup.data.settings.readingPreferences).toMatchObject({
+      fontSize: 22,
+      theme: 'night'
+    })
+    expect(JSON.stringify(backup)).not.toContain('secret-key')
+  })
+
+  it('imports an older backup without reading preferences using current defaults', async () => {
+    await repository.saveSettings({
+      id: 'app',
+      apiBaseUrl: 'https://api.example.com/v1',
+      apiKey: 'local-key',
+      model: 'test-model',
+      timeoutSeconds: 10,
+      readingPreferences: {
+        fontFamily: 'sans',
+        fontSize: 24,
+        margin: 'large',
+        lineHeight: 'loose',
+        firstLineIndent: true,
+        theme: 'sepia',
+        brightness: 'dim'
+      },
+      updatedAt: now
+    })
+    const backup = await repository.exportBackup()
+    delete backup.data.settings.readingPreferences
+    await repository.importBackup(backup, 'replace')
+    expect(await repository.getSettings()).toMatchObject({ apiKey: 'local-key' })
+    expect((await repository.getSettings()).readingPreferences).toBeUndefined()
+  })
+
   it('does not corrupt data when an invalid backup is rejected', async () => {
     await repository.addContent(content)
     await expect(

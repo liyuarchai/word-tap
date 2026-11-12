@@ -1,6 +1,6 @@
 # Word Tap
 
-本地优先的英语精读与词汇复习 PWA。导入 TXT、SRT、Markdown、CSV、DOCX 或 XLSX，在上下文中点词、收集生词，并按固定间隔复习。
+本地优先的英语精读与词汇复习 PWA。导入 TXT、SRT、Markdown、CSV、DOCX、XLSX，或解析无 DRM 的 EPUB、MOBI、AZW3，在上下文中点词、收集生词，并按固定间隔复习。
 
 ## 环境
 
@@ -15,6 +15,15 @@ pnpm dev
 ```
 
 开发服务器固定运行在 <http://127.0.0.1:5180/>，避免与其他本地项目占用同一个端口。设置页地址为 <http://127.0.0.1:5180/settings>。
+
+OCR 是默认关闭的实验入口。本地开发时显式开启：
+
+```powershell
+$env:VITE_ENABLE_OCR_DEMO='true'
+pnpm dev
+```
+
+生产构建同样通过 `VITE_ENABLE_OCR_DEMO=true` 开启。没有该变量时，原有粘贴、文本、Office 和电子书导入保持不变。
 
 生产构建和本地预览：
 
@@ -40,9 +49,13 @@ pnpm exec playwright test --project=smoke
 pnpm exec playwright test --project=visual
 pnpm exec playwright test --project=mock
 pnpm exec playwright test --project=api
+pnpm exec playwright test --project=ocr-live
+pnpm exec playwright test --project=ebook-live
 ```
 
 Playwright 会自动构建并在 `http://127.0.0.1:4173` 启动预览。
+
+`ocr-live` 使用浏览器生成的英文页执行真实 Tesseract 识别。`ebook-live` 会读取被 Git 忽略的 `live-fixtures/pride-and-prejudice.epub`、`.mobi` 与 `.azw3`；未提供样本时明确跳过。样本可使用 Project Gutenberg 的公开领域 Pride and Prejudice 文件。
 
 ## AI 配置
 
@@ -81,13 +94,21 @@ pnpm dictionary:build
 
 脚本默认读取 `node_modules/ecdict/assets/ecdict.csv`，输出词典和 `dictionary-meta.json`。元数据记录源文件哈希、输出哈希、许可和词条数量。
 
+## OCR 与电子书
+
+- `pnpm dev` 和 `pnpm build` 会先运行 `pnpm ocr:sync`，把 Tesseract Worker、WASM Core 和英文模型同步到同源 `public/ocr/`；生成文件不提交到 Git。
+- 书页图片只在浏览器内存中预览和识别，不上传到 AI 或远程 OCR，不写入 IndexedDB，也不进入备份。用户确认后的文字才会创建为 `OCR` 内容。
+- OCR 支持单张 JPEG、PNG、WebP。模型首次识别时从同源加载并缓存；识别中可停止，失败后可重新选择或改用粘贴文本。
+- 电子书入口支持无 DRM 的 `.epub`、`.mobi`、`.azw3`，原文件上限 50 MB，提取文字上限 10 MB。只保存提取后的纯文本与分段，不保存电子书二进制、图片或字体。
+- 阅读器顶部 `Aa` 入口可调整字号、边距、行距、字体、首行缩进、亮度和五套主题；偏好全局保存于现有设置记录。
+
 ## 数据存储
 
 - 内容、生词、复习记录和设置保存在 IndexedDB。
 - 刷新或重新打开应用后恢复。
 - JSON 备份包含内容、生词、复习日志和未完成会话，不包含 API Key。
 - Markdown 导出适合直接放入 Obsidian。
-- Service Worker 预缓存应用壳、字体和本地词典；AI 请求不缓存。
+- Service Worker 预缓存应用壳、字体和本地词典；OCR 模型不进入应用壳预缓存，首次使用后单独缓存。AI 请求不缓存。
 
 ## 部署
 
@@ -95,5 +116,5 @@ pnpm dictionary:build
 
 ## 范围
 
-当前 MVP 不包含账号、云同步、真实视频平台接口、版权书库、复杂 SM-2 和悬浮窗。
+当前版本不包含账号、云同步、真实视频平台接口、版权书库、DRM 解密、远程 OCR、多页批量拍书、复杂 SM-2 和悬浮窗。
 

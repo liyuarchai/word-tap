@@ -1,12 +1,12 @@
 # Word Tap MVP 开发与维护计划
 
-> 文档类型：生产开发计划、任务台账与验收记录  
-> 计划版本：v4.2  
-> 当前迭代：R2：AI 词义解释状态机  
-> 状态：阶段完成，等待用户审阅  
-> 最后更新：2026-11-13  
-> 目标目录：`E:\ai\word tap\app`  
-> 需求基线：[PRD.md](./PRD.md)  
+> 文档类型：生产开发计划、任务台账与验收记录
+> 计划版本：v5.1
+> 当前迭代：R3：多模态实验、电子书与阅读体验
+> 状态：R3 实现与自动化验收完成，待用户验收
+> 最后更新：2026-11-13
+> 目标目录：`E:\ai\word tap\app`
+> 需求基线：[PRD.md](./PRD.md)
 > 视觉基线：`yuanxing/PRD-原型设计.zip`
 
 ## 0. 文档维护规则
@@ -26,12 +26,12 @@
 
 | 项目 | 当前值 |
 | --- | --- |
-| 当前阶段 | R2：AI 词义解释状态机（完成，待用户审阅） |
-| 已完成任务 | MVP 阶段一至阶段三完成；R0、R1、R2 完成 |
+| 当前阶段 | R3：多模态实验、电子书与阅读体验（实现完成，待验收） |
+| 已完成任务 | MVP 阶段一至阶段三完成；R0、R1、R2 完成；R3 实现与自动化门禁完成 |
 | 当前阻塞 | 无 |
-| 下一任务 | 用户审阅 R2；未确认前不进入 R3 |
+| 下一任务 | 用户验收 R3 的 OCR、电子书和阅读偏好；确认后再规划下一迭代 |
 | 生产工程 | `app/` 已创建并可构建 |
-| Git 仓库 | 根目录已初始化，分支 `main`，首次提交 `4b675a0` |
+| Git 仓库 | 分支 `main`；R2 最新提交 `e4e1ef0`；R3 修改尚未提交，等待验收 |
 | 可用运行时 | Node.js 24.22.1、pnpm 11.25.0 |
 | npm | 当前 PATH 中不可用；统一使用 pnpm |
 | 原型状态 | 已有静态 HTML 交互原型，使用 localStorage 和模拟 AI，仅作为视觉与交互基准 |
@@ -52,8 +52,9 @@
 | R0：计划基线与范围锁定 | 完成 | 2026-11-13 | 2026-11-13 | 用户已确认 R0，R1 作为独立 Goal 启动 |
 | R1：核心闭环可信度与可访问性修复 | 完成 | 2026-11-13 | 2026-11-13 | 46 个单元/组件测试、7 个 E2E、lint、typecheck、build 全部通过 |
 | R2：AI 词义解释状态机 | 完成 | 2026-11-13 | 2026-11-13 | 62 个单元/组件测试、12 个 E2E、lint、typecheck、build 全部通过 |
+| R3：多模态实验、电子书与阅读体验 | 待验收 | 2026-11-13 | 2026-11-13 | 87 个单元/组件测试、18 个 E2E、真实 OCR 与 EPUB/MOBI/AZW3 实盘导入通过 |
 
-## 1.3 当前活跃迭代：R0 计划基线与范围锁定
+## 1.3 历史迭代：R0 计划基线与范围锁定
 
 ### R0 目标
 
@@ -85,7 +86,7 @@
 - 原有 MVP 阶段、实际测试记录、决策记录和变更记录完整保留。
 - 用户明确确认 R1 范围后，R0 状态才能改为“完成”，R1 才能启动 Goal。
 
-## 1.4 当前阶段：R1 核心闭环可信度与可访问性修复
+## 1.4 历史阶段：R1 核心闭环可信度与可访问性修复
 
 > 状态：完成。用户已授权 `LibraryPage.tsx` 的窄范围 ARIA 修复，全部测试门禁通过。
 
@@ -245,7 +246,7 @@ pnpm test:e2e
 - 移动词卡仍为底部面板，拖拽扩展未在本阶段实现。
 - 原有阶段四的真实 DeepSeek 精析人工复测仍待用户完成；R1 已通过拦截网络与字段兼容测试覆盖实现契约。
 
-## 1.5 下一阶段：R2 AI 词义解释状态机
+## 1.5 历史阶段：R2 AI 词义解释状态机
 
 > 状态：完成。R1 不重开；R2 状态机、UI 和测试均已通过。
 
@@ -510,6 +511,279 @@ pnpm test:e2e
 - “流式输出”状态是完整响应通过 Zod 校验后的 `validated-progressive` 字段渐显，不是真实 SSE。
 - 主 JavaScript chunk 为 792.08 kB，仍有 Vite 体积提示；代码分割属于后续阶段。
 
+## 1.6 当前阶段：R3 多模态实验、电子书与阅读体验
+
+> 状态：待验收。实现和自动化验证已完成，等待用户确认视觉、交互与产品边界。
+
+### R3 目标
+
+在保持现有文本导入、阅读器、点词、本地词典、AI 解释、生词本、复习、导出和备份流程完全可用的前提下，新增三个相互隔离的实验能力：
+
+1. 本地书页 OCR：拍照或选择书页图片，获得可编辑文本，确认后进入现有阅读流程。
+2. 电子书导入：支持无 DRM 的 EPUB、MOBI、AZW3，提取为现有 `Segment[]` 纯文本后阅读。
+3. 阅读体验设置：支持字号、边距、行高、字体、首行缩进、亮度和多套字体/背景主题。
+
+### R3 产品边界
+
+- OCR 是独立、可关闭的实验入口，不替代或遮挡原有“粘贴”和“文件”导入。
+- 原始书页图片只在浏览器本地预览和识别，不写入 IndexedDB，不进入备份，不发送给远程 OCR 或 AI。
+- OCR 文本必须先进入可编辑预览；用户确认标题和正文后才允许创建内容。
+- OCR 成功后进入现有阅读器，点词继续使用本地词典优先和 R2 AI 状态机。
+- 电子书只从用户本次选择的本地文件提取文本，不接真实书库或视频平台。
+- 阅读偏好是全局设置，不改变正文内容、生词、复习或 AI 缓存。
+- 隐藏或关闭 OCR feature flag 时，原导入方式必须完全正常。
+
+### R3 明确不做
+
+- 不做远程 OCR、云端图片识别、多模态聊天或把原图发送给任意模型。
+- 不做多页批量 OCR、连续拍书、自动翻页、复杂透视矫正和版式还原。
+- 不做 DRM 解密、账号书库、在线下载、云同步或版权内容分发。
+- 不做电子书原始排版、脚本、远程图片、字体和嵌入 HTML 的执行。
+- 不做完整分页动画、跨页手势或 EPUB 原始 CSS 渲染。
+- 不增加账号、聊天、社交、排行榜或通用 AI 对话。
+- 不修改复习算法、AI 缓存键规则、API Key 导出限制或备份敏感数据处理。
+
+### R3 技术决策与依赖
+
+| 能力 | 方案 | 许可与包体 | 回退 |
+| --- | --- | --- | --- |
+| OCR | `tesseract.js@7`，动态加载 Worker 和英文模型 | Apache-2.0，npm unpacked 约 1.41 MB | 识别失败保留原图，允许重试或改用粘贴文本 |
+| OCR 模型 | `@tesseract.js-data/eng`，部署到同源 `/ocr/`，首次识别时下载并缓存 | MIT，npm unpacked 约 13.88 MB | 模型加载失败视为 OCR 不可用，不影响原导入 |
+| 电子书 | `foliate-js@1.0.1`，按格式动态导入解析模块 | MIT，npm unpacked 约 376 KB | 解析失败提示格式或 DRM 问题，不写数据库 |
+| 阅读字体 | 复用现有 Newsreader 与 Inter | 无新增字体依赖 | 字体加载失败使用现有回退字体 |
+
+- OCR 模型不得使用第三方 CDN；只允许同源 `/ocr/`、Web Worker 和 Tesseract 必要脚本请求。
+- OCR 模型不得进入 Service Worker 应用壳预缓存；首次成功后可单独缓存。
+- `foliate-js` 只在用户选择电子书后动态加载，不进入首屏主包。
+- OCR 能力由 `VITE_ENABLE_OCR_DEMO=true` 开启；未设置或为 `false` 时入口不渲染。
+- 本地开发、演示和自动化测试通过环境变量显式开启实验；生产构建默认关闭。
+
+### R3 核心类型
+
+新增类型必须作为领域契约，不得在组件中使用零散布尔值推断 OCR 状态：
+
+```ts
+type OcrPhase =
+  | 'idle'
+  | 'model-loading'
+  | 'recognizing'
+  | 'success'
+  | 'partial'
+  | 'failed'
+  | 'cancelled'
+
+interface OcrResult {
+  text: string
+  confidence: number
+  wordCount: number
+  warnings: string[]
+}
+
+interface OcrClient {
+  recognize(image: Blob, signal: AbortSignal): Promise<OcrResult>
+}
+
+interface ExtractedEbook {
+  title: string
+  format: 'EPUB' | 'MOBI' | 'AZW3'
+  rawText: string
+  segments: Segment[]
+  wordCount: number
+  chapterCount: number
+  warnings: string[]
+}
+
+interface EbookExtractor {
+  extract(file: File, signal: AbortSignal): Promise<ExtractedEbook>
+}
+
+interface ReadingPreferences {
+  fontFamily: 'serif' | 'sans'
+  fontSize: 16 | 18 | 20 | 22 | 24
+  margin: 'small' | 'medium' | 'large'
+  lineHeight: 'tight' | 'normal' | 'loose'
+  firstLineIndent: boolean
+  theme: 'paper' | 'sepia' | 'mint' | 'night' | 'blush'
+  brightness: 'dim' | 'normal' | 'bright'
+}
+```
+
+- `ContentFormat` 扩展为 `TXT | SRT | MD | DOCX | XLSX | CSV | EPUB | MOBI | AZW3 | OCR`。
+- `Settings` 增加可选 `readingPreferences?: ReadingPreferences`；加载时与默认偏好合并。
+- OCR 内容使用 `format: 'OCR'`、`mode: 'page'`，`sourceName` 为图片文件名或“拍照书页”。
+- 电子书内容使用对应格式和 `mode: 'page'`；`rawText` 只保存提取后的纯文本，不保存电子书二进制。
+
+### R3-01 OCR 导入与状态
+
+- 在导入弹层增加独立“拍照/选择书页”入口；存在性由 feature flag 控制，不改现有 tab 结构和默认流程。
+- 移动端图片输入允许 `capture="environment"`；桌面端允许选择 JPEG、PNG、WebP。一次只处理一张图片。
+- 选择图片后显示本地预览、页边范围提示和隐私说明：“图片仅在本机识别，不会上传；仅在你确认后的文字会进入阅读和后续 AI 上下文。”
+- 不实现手动裁切 UI；通过图片预览上的四角/页边提示引导用户让书页完整、平整、光线均匀。后续需要时可单独增加裁切。
+- 识别期间依次显示模型加载和本地识别状态，并提供取消按钮。
+- 识别条件固定：
+  - 至少 3 个英文词且平均置信度不低于 50%：`success`。
+  - 有可用文字但少于阈值或置信度不足：`partial`，仍进入可编辑预览并显示警告。
+  - 没有可用文字：`failed`，保留原图、原因、重新选择和改用粘贴入口。
+  - 用户取消：`cancelled`，不写数据库、不写内容缓存。
+- 成功和部分成功的预览允许修改标题和正文，显示词数、置信度和警告；只有用户点击“开始阅读”后才写 IndexedDB。
+- OCR 文本按普通 TXT 分段规则生成 `Segment[]`；确认后导航到现有 `/reader/:contentId`。
+- 关闭弹层、切换图片、组件卸载或重复识别时调用 `AbortController.abort()`；迟到响应同时校验当前 requestId，不得更新新任务状态。
+- OCR 识别文本只作为文本数据，不执行其中任何指令，不把内容当作系统提示或 AI 指令。
+- OCR 失败、取消、模型加载失败或确认前关闭，不得新增、覆盖或删除任何内容。
+
+### R3-02 电子书导入
+
+- 文件输入新增 `.epub`、`.mobi`、`.azw3`，并与现有 TXT、SRT、MD、CSV、DOCX、XLSX 入口共存。
+- 扩展名之外还需检查文件签名或格式结构；无法识别时提示实际支持的格式。
+- 原始文件上限 50 MB；提取文本上限 10 MB。超限、DRM、加密或损坏文件在创建内容前失败。
+- EPUB 按 spine 阅读顺序提取；MOBI/AZW3 按解析器给出的阅读顺序提取。标题、段落、引用和列表映射到现有 `Segment`，忽略脚本、样式、远程资源和原始 HTML 执行。
+- 选择电子书后显示提取状态、书名、格式、章节数、词数和正文短预览；用户确认后才创建内容。
+- 提取失败不得写数据库，不得影响当前选择的其他文件和原有导入流程。
+- 不保存电子书二进制、封面、图片、字体或 DRM 相关数据；备份只包含提取后的文本与分段。
+- 若 `foliate-js` 无法可靠处理某一合法格式，必须明确显示该格式不可用并保留其他两种格式与原有导入；不得用虚假成功或空内容掩盖失败。
+
+### R3-03 阅读排版与主题
+
+- 阅读器顶部栏增加 `Aa` 入口；移动端打开底部面板，桌面端打开侧向面板。面板可关闭，并支持 Escape、Tab 顺序和焦点返回。
+- 阅读偏好全局应用，所有已打开内容共享同一设置；刷新后从现有 `settings` 记录恢复。
+- 字号：16、18、20、22、24 px。
+- 边距：小、中、大三档；桌面与移动端分别使用响应式 CSS 变量，不改变正文列最大可读宽度约束。
+- 行高：紧 1.6、正常 1.8、松 2.0。
+- 字体：Newsreader 衬线体和 Inter 无衬线体。
+- 首行缩进：仅作用于普通正文段落；不应用于字幕、标题、列表、引用、代码块。
+- 主题：paper、sepia、mint、night、blush；每套主题定义背景、正文、辅助文字、边框、强调色和点词高亮 Token。
+- 亮度：dim、normal、bright；必须通过独立 Token 调整，不得用整体 `opacity` 或 CSS filter 制造低对比度。
+- 五套主题与三档亮度组合必须进行对比度测试，正文和辅助文字达到 WCAG AA；11–13 px 辅助文字不得低于 4.5:1。
+- 字号、主题或面板变化不得造成横向滚动，不得改变词元行高，不得改变词卡打开前后正文边界和宽度。
+- 偏好保存失败时显示可操作提示；当前阅读正文、词典、收藏和复习不能被阻塞或清空。
+
+### R3-04 装配、缓存与数据兼容
+
+- `OcrClient` 和 `EbookExtractor` 通过 `AppProvider` 或等价的依赖注入入口提供给 UI；测试可使用显式 mock，不在 UI 中散落模拟业务分支。
+- OCR 模型和 Worker 使用同源资源；测试必须断言 OCR 过程中没有原始图片上传请求，点词 AI 请求也不包含图片。
+- 不修改 Dexie 表定义和数据库版本；`settings` 通过可选字段扩展，旧记录读取时补齐默认 `ReadingPreferences`。
+- 保持 `wordtap.backup.v1`：
+  - 旧备份没有 `readingPreferences` 时正常导入并使用默认值。
+  - 新备份可携带非敏感阅读偏好。
+  - 内容格式枚举的扩展向后读取旧内容；旧版本应用打开新格式超出兼容范围时不得伪造成功。
+  - API Key 继续不进入备份、Markdown、JSON、日志、错误文案或测试快照。
+- OCR 图片和电子书文件不进入 `aiCache`、导出或备份；AI 缓存键和 R2 状态机规则保持不变。
+- 原有文本导入仍受 2 MB 正文上限约束；电子书提取文本单独受 10 MB 上限约束。
+- OCR、电子书解析、AI 或模型加载失败都不得阻塞本地词典、生词收集、今日复习和 Markdown/JSON 导出。
+
+### R3 允许修改的文件
+
+- 导入：`app/src/features/library/ImportDialog.tsx`
+- 导入：`app/src/features/library/officeImport.ts`
+- 新增 OCR：`app/src/features/library/ocrImport.ts`、对应测试和必要图片夹具
+- 新增电子书：`app/src/features/library/ebookImport.ts`、对应测试和来源可审计的电子书夹具
+- OCR 服务与 Mock：`app/src/services/ocr.ts`、`app/src/services/mockOcr.ts` 及测试
+- OCR 资源同步脚本：`app/scripts/sync-ocr-assets.mjs`
+- 阅读器：`app/src/features/reader/ReaderPage.tsx`
+- 新增阅读偏好：`app/src/features/reader/ReadingPreferencesPanel.tsx`、`readingThemes.ts` 及测试
+- 应用装配：`app/src/app/AppContext.tsx`、`app/src/app/appContextValue.ts`、`app/src/main.tsx`
+- 领域契约：`app/src/domain/types.ts`、`app/src/domain/schemas.ts`
+- 本地存储：`app/src/db/repository.ts`
+- 环境类型与示例：`app/src/vite-env.d.ts`、`app/.env.example`
+- 设计变量：`app/src/styles/tokens.css`、`app/src/styles/global.css`、`app/src/styles/app.module.css`
+- 测试：`app/tests/e2e/app.spec.ts`、`app/src/test/setup.ts`、新增单元/组件测试和 E2E 测试辅助夹具
+- 文档与依赖：`app/README.md`、`app/package.json`、`app/pnpm-lock.yaml`、`app/pnpm-workspace.yaml`
+- 同源 OCR 静态资源：`app/public/ocr/`，只包含构建所需的 Worker、WASM 和英文模型文件
+- 环境与生成物边界：`app/.env.example` 和根目录 `.gitignore`；`public/ocr/`、`live-fixtures/` 为 Git 忽略的本地生成/测试输入
+
+如果实施发现必须修改白名单外文件，先停止并说明原因；不得为了通过测试擅自扩大范围。不修改 `app/src/db/db.ts` 的表定义或数据库版本。不创建平行计划文档。
+
+### R3 实施顺序
+
+1. 先锁定类型、Zod Schema、Settings 默认合并和依赖装配，不写 UI。
+2. 完成 OCR 服务、结果分档、取消和纯文本预览，再接入导入弹层。
+3. 完成电子书格式检测、动态提取、失败分类和确认写入。
+4. 把 OCR 与电子书创建的内容直接接入现有阅读器和点词流程。
+5. 完成阅读偏好面板、主题 Token、响应式布局和键盘交互。
+6. 补齐单元、组件、E2E、可访问性、性能与刷新恢复测试。
+7. 实际运行全部门禁，将命令、数量、耗时、失败原因和修复结果写入 13.2 后再更新 R3 状态。
+
+### R3 风险与处理
+
+| 风险 | 处理 |
+| --- | --- |
+| Tesseract 模型体积大、首次识别慢 | 只在 feature flag 开启且用户选择图片后加载；显示模型下载/识别状态；同源缓存；提供取消和粘贴回退 |
+| 拍照倾斜、反光或小字导致低置信度 | 预览显示页边与清晰度提示；低置信度进入 partial 可编辑修正，不直接无提示写入 |
+| OCR 失败污染已有内容 | 确认前不写 IndexedDB；OCR 结果只在组件内存；失败只保留图片预览和错误 |
+| 远程资源泄露图片或引入网络依赖 | 模型和 Worker 全部同源；测试断言无图片上传；隐私文案明确本地处理边界 |
+| MOBI/AZW3 格式变体多、存在 DRM | 以明确失败代替猜测；仅承诺无 DRM 合法文件；用三类夹具验证成功和拒绝路径 |
+| 电子书提取文本过大导致卡顿 | 50 MB 原文件/10 MB 文本双上限；按章节映射分段；失败不写库 |
+| 主题降低辅助文字对比度 | 每套主题由专用 Token 控制；五主题×三亮度自动化对比度验证 |
+| 字号和边距导致横向滚动或词卡位移 | 使用正文列宽度和 CSS 变量受控调整；覆盖 320–1920 px 与词卡打开前后边界断言 |
+| 新增格式破坏旧备份 | 保持 backup v1 和可选字段；旧文件无偏好和旧格式数据必须通过往返测试 |
+
+### R3 测试计划
+
+#### 单元测试
+
+- OCR 文本规范化、英文词数统计、置信度阈值、success/partial/failed 分类。
+- OCR 取消、模型加载失败、空结果、迟到响应和重复任务。
+- OCR 文本中的指令、脚本和 HTML 只作为普通文字，不执行、不传给 AI 系统提示。
+- 电子书格式检测、EPUB/MOBI/AZW3 文本与章节顺序、DRM/损坏/超限错误。
+- `ReadingPreferences` 默认值、Schema 旧数据兼容、五种主题与三种亮度 Token 对比度。
+- 内容格式枚举扩展后，旧 TXT/SRT/MD/DOCX/XLSX/CSV 内容仍可读取和导出。
+
+#### 组件测试
+
+- feature flag 关闭时 OCR 入口不出现，粘贴和文件导入保持原行为。
+- feature flag 开启时出现独立拍照/选择入口，不遮挡原入口。
+- 图片预览、正在加载模型、识别中、成功、部分成功、完全失败和取消状态。
+- 部分成功可修改标题和正文；确认前仓库写入次数为零，确认后只写一次。
+- 失败后保留原图并可重新选择或切换到粘贴。
+- 阅读偏好面板支持键盘、Escape、焦点返回、44 px 触控目标与减少动画。
+- 偏好保存失败不清空正文，不阻塞点词、收藏或复习。
+
+#### E2E 测试
+
+- 通过显式测试注入或 `?ocrMock=1` 模拟 OCR，不依赖公网模型下载；覆盖“选择书页 → 识别 → 可编辑预览 → 开始阅读 → 点词”。
+- 拦截网络并断言 OCR 流程没有向 AI 或远程服务上传原始图片。
+- OCR 完全失败后内容库数量不变，原图预览和粘贴回退仍可用。
+- feature flag 关闭后，原 TXT/SRT/MD/DOCX/XLSX/CSV 导入和阅读闭环正常。
+- EPUB、MOBI、AZW3 入口可识别；至少一个真实解析夹具完成阅读，另外两个格式覆盖有效和 DRM/损坏失败路径。
+- 切换字号、边距、行高、字体、主题和亮度后刷新，偏好仍保留。
+- 在 320、390、600、820、1024、1440、1920 px 验证无横向滚动，词卡打开前后正文边界不变。
+- 内容库、阅读器、生词本、复习、设置和 OCR 预览执行 axe，`serious` 与 `critical` 必须为 0。
+- 现有 R0–R2 的 AI 取消、缓存、无 Key、断网、超时、429、5xx 和非法响应测试不得回归。
+
+### R3 测试门禁
+
+```powershell
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm test:e2e
+```
+
+- 首次使用 OCR 的模型下载与真实识别至少完成一次人工冒烟；自动化测试可以注入 Mock，但不得把 Mock 结果伪报为真实 OCR 精度。
+- 电子书真实解析至少验证一个无 DRM EPUB；MOBI/AZW3 使用来源可审计的夹具或人工样本验证，不能只检查文件扩展名。
+- 若构建需要额外环境变量，命令和结果必须原样写入“13.2 实际测试记录”。
+
+### R3 验收标准
+
+- 用户可从图片得到可编辑文本，确认后进入现有阅读器并正常点词。
+- OCR 失败时保留原图预览，提供重新拍照、选择图片或改用粘贴的明确入口。
+- 原始书页图片不上传、不写入 IndexedDB、不进入备份和 AI 请求。
+- OCR 入口可通过 feature flag 完全关闭，关闭后原有导入方式完全正常。
+- 支持无 DRM 的 EPUB、MOBI、AZW3；DRM、损坏和超限文件给出明确错误且不改动已有内容。
+- 阅读器支持字号、边距、行高、字体、首行缩进、亮度和五套主题；偏好刷新后保留。
+- 所有主题与亮度组合满足 WCAG AA，键盘可操作，320–1920 px 无横向滚动。
+- 点词、收藏、复习、导出和 API Key 安全规则不发生回归。
+- 不出现未捕获异常；所有测试门禁真实通过后才将 R3 标记“完成”。
+
+### R3 已知限制
+
+- OCR 只处理单张英文书页；多页批处理、手动裁切、旋转矫正和版式保持不在本迭代。
+- OCR 模型首次使用需要下载，完全离线且未缓存模型时 OCR 不可用，但阅读、收藏和复习继续可用。
+- 电子书只保留纯文本和有限语义分段，不还原原始排版、图片、脚注交互或 DRM 内容。
+- Project Gutenberg #1342 的 EPUB/MOBI/AZW3 样本仅用于本地实盘验收，放在 Git 忽略的 `app/live-fixtures/`；缺少样本时 `ebook-live` 会明确跳过。
+- 主 JavaScript chunk 为 815.07 kB，仍有 Vite 体积提示；OCR 与电子书解析器已动态拆包，体积优化留待后续。
+
 ## 2. 产品目标与范围
 
 ### 2.1 MVP 目标
@@ -523,7 +797,9 @@ pnpm test:e2e
 
 ### 2.2 必须实现
 
-- 粘贴或导入 TXT、SRT、Markdown，支持字幕和书页两种阅读形态。
+- 粘贴或导入 TXT、SRT、Markdown、CSV、DOCX、XLSX，支持字幕和书页两种阅读形态。
+- R3 实验能力：通过 feature flag 启用本地 OCR 书页导入；导入无 DRM 的 EPUB、MOBI、AZW3。
+- R3 阅读体验：字号、边距、行高、字体、首行缩进、亮度和五套阅读主题。
 - 本地英汉词典优先，AI 异步补充语境释义和例句。
 - 单句机器翻译与按需精析。
 - 生词新增、查看、搜索、筛选、编辑和删除。
@@ -540,6 +816,7 @@ pnpm test:e2e
 - 复杂 SM-2 算法。
 - 离线大模型或服务端代理。
 - 多文件批量导入、词组查询、标签、图表、学习日历。
+- 远程 OCR、云书库、DRM 解密和多页批量拍书。
 
 ## 3. 已确认技术决策
 
@@ -556,6 +833,9 @@ pnpm test:e2e
 | AI 请求 | 浏览器直接请求 OpenAI-compatible `/chat/completions` |
 | AI Key | 保存于本地 IndexedDB，不进入任何导出文件 |
 | 本地词典 | 从 ECDICT 生成约 30,000 高频词子集，校验许可 |
+| OCR 实验 | `tesseract.js@7` + 同源英文模型；`VITE_ENABLE_OCR_DEMO` 控制入口；图片只在本地处理 |
+| 电子书 | `foliate-js@1.0.1` 动态加载，只提取无 DRM EPUB/MOBI/AZW3 的纯文本 |
+| 阅读偏好 | 扩展现有 `settings` 可选字段，不新增 Dexie 表，不升级数据库版本 |
 | 应用启动数据 | 空数据，不迁移原型 localStorage 模拟数据 |
 | 部署形态 | 静态 HTTPS 站点，需要 SPA 路由回退 |
 
@@ -570,6 +850,9 @@ pnpm test:e2e
 - `rehype-sanitize`
 - `@tanstack/react-virtual`
 - `vite-plugin-pwa`
+- `mammoth`、`read-excel-file`，现有 Office 导入能力
+- `csv-parse`，现有 CSV 处理能力
+- R3 实施时新增 `tesseract.js@7`、`@tesseract.js-data/eng` 和 `foliate-js@1.0.1`；本计划文档修订阶段不安装
 
 ### 3.2 开发与测试依赖
 
@@ -592,6 +875,10 @@ pnpm test:e2e
 app/
   public/
     icons/
+    ocr/
+      eng.traineddata.gz
+      tesseract-worker.min.js
+      tesseract-core.wasm.js
   scripts/
     build-dictionary.ts
   src/
@@ -601,21 +888,31 @@ app/
     components/
     db/
       db.ts
-      repositories/
+      repository.ts
     domain/
       types.ts
       schemas.ts
-      parsers/
-      dictionary/
-      review/
-      backup/
+      parsers.ts
+      text.ts
+      review.ts
     features/
       library/
+        ImportDialog.tsx
+        officeImport.ts
+        ocrImport.ts
+        ebookImport.ts
       reader/
-      ai/
+        ReaderPage.tsx
+        ReadingPreferencesPanel.tsx
+        WordPanel.tsx
       vocabulary/
       review/
       settings/
+    services/
+      ocr.ts
+      mockOcr.ts
+      ai.ts
+      export.ts
     styles/
       tokens.css
       global.css
@@ -647,7 +944,17 @@ app/
 ## 6. 核心数据模型
 
 ```ts
-type ContentFormat = 'TXT' | 'SRT' | 'MD';
+type ContentFormat =
+  | 'TXT'
+  | 'SRT'
+  | 'MD'
+  | 'DOCX'
+  | 'XLSX'
+  | 'CSV'
+  | 'EPUB'
+  | 'MOBI'
+  | 'AZW3'
+  | 'OCR';
 type ReadingMode = 'subtitle' | 'page';
 type Rating = 'forgot' | 'fuzzy' | 'know';
 
@@ -673,6 +980,26 @@ interface ContentRecord {
   createdAt: string;
   updatedAt: string;
   lastOpenedAt: string;
+}
+
+interface ReadingPreferences {
+  fontFamily: 'serif' | 'sans';
+  fontSize: 16 | 18 | 20 | 22 | 24;
+  margin: 'small' | 'medium' | 'large';
+  lineHeight: 'tight' | 'normal' | 'loose';
+  firstLineIndent: boolean;
+  theme: 'paper' | 'sepia' | 'mint' | 'night' | 'blush';
+  brightness: 'dim' | 'normal' | 'bright';
+}
+
+interface Settings {
+  id: 'app';
+  apiBaseUrl: string;
+  apiKey: string;
+  model: string;
+  timeoutSeconds: 5 | 10 | 20;
+  readingPreferences?: ReadingPreferences;
+  updatedAt: string;
 }
 
 interface VocabularyRecord {
@@ -708,7 +1035,7 @@ interface VocabularyRecord {
 | `vocabularies` | `id`, `contentId`, `createdAt`, `dueAt`, `updatedAt` | 生词、上下文快照和复习状态 |
 | `reviewLogs` | `id`, `vocabularyId`, `reviewedAt` | 每次评分审计记录 |
 | `reviewSessions` | `localDate` | 当天卡列表、已答集合和时间 |
-| `settings` | 固定主键 `app` | AI 配置和界面偏好 |
+| `settings` | 固定主键 `app` | AI 配置、非敏感界面偏好和可选 `readingPreferences` |
 | `aiCache` | `key`, `createdAt` | 稳定的 AI 成功结果缓存 |
 
 数据库必须包含版本和迁移入口。所有业务写入以 IndexedDB 成功为准，界面不能在落盘前显示“已保存”。
@@ -721,17 +1048,24 @@ interface VocabularyRecord {
 - 删除词卡同步删除评分记录，并从当前会话过滤该卡。
 - 新词收集时 `dueAt = createdAt`，立即进入今日复习。
 - API Key 只存本地，不进入 Markdown、JSON、日志或错误提示。
+- 新增内容格式和阅读偏好不修改 Dexie 表定义或数据库版本；旧设置读取时补齐默认阅读偏好。
+- OCR 图片与电子书二进制不进入内容表、备份、导出或 AI 缓存。
 
 ## 7. 解析、分词与本地词典
 
 ### 7.1 内容导入
 
-- 单文件最大 2 MB；超限保留用户输入并显示明确提示。
+- 普通文本/字幕正文最大 2 MB；超限保留用户输入并显示明确提示。
 - 文件使用 `arrayBuffer + TextDecoder('utf-8', { fatal: true })` 解码。
-- 接受 `.txt`、`.srt`、`.md`，格式检测结果允许用户手动纠正。
+- 文本文件接受 `.txt`、`.srt`、`.md`、`.csv`；现有 Office 入口接受 `.docx`、`.xlsx`。
+- R3 文件入口增加 `.epub`、`.mobi`、`.azw3`。电子书原文件上限 50 MB，提取文本上限 10 MB。
+- 文本/字幕/Office 正文继续使用 2 MB 正文上限；电子书使用独立的 10 MB 提取文本上限。
 - 标题默认取文件名或首个有效文本行前 40 字，可后续编辑。
 - 使用 SHA-256 正文哈希检测重复内容，提示用户“仍然导入”或取消。
 - 导入成功后直接进入阅读器；局部解析错误显示警告但保留可用内容。
+- OCR 书页入口只在 `VITE_ENABLE_OCR_DEMO=true` 时出现；原图表、电子书、文本和 Office 导入路径不得被遮挡或改变。
+- OCR 图片只在内存预览，识别文本必须先进入可编辑预览；用户确认前不得写 IndexedDB。
+- 电子书在用户选择文件后才动态提取，确认前不得写 IndexedDB；DRM、加密、损坏或超限文件必须失败且不修改已有内容。
 
 ### 7.2 分段规则
 
@@ -739,6 +1073,8 @@ interface VocabularyRecord {
 - SRT：一个合法 cue 为一段；支持可选序号、时间轴和正文多行；跳过损坏块并计数。
 - Markdown：保留标题、段落、引用、列表和代码块；内联 HTML 不执行，远程图片不加载，代码块不可点词。
 - SRT 字幕标签和 ASS 位置标签从展示文本中剥离。
+- OCR：确认后的纯文本按 TXT 空行规则分段；不执行图片或文字中的指令。
+- EPUB：按 spine 顺序提取章节；MOBI/AZW3：按解析器阅读顺序提取。标题、段落、引用和列表映射为现有 `Segment`，忽略脚本、样式、远程资源和原始内联 HTML。
 
 ### 7.3 分词与词形
 
@@ -834,12 +1170,18 @@ type AiErrorCode =
 
 ## 9. 阅读器与交互
 
-- 正文最大宽度 680px，桌面 20px 字号、1.9 行高；移动端 17px、1.85 行高。
+- 正文默认最大宽度 680px，桌面 20px 字号、1.9 行高；移动端 17px、1.85 行高。R3 阅读偏好开启后使用用户选择的响应式字号、边距和行高。
+- 阅读器顶部栏提供 `Aa` 设置入口；移动端使用底部面板，桌面端使用侧向面板，不与词卡同时遮挡正文。
+- 字号支持 16、18、20、22、24 px；行高支持 1.6、1.8、2.0；字体支持 Newsreader 和 Inter；首行缩进仅作用于普通正文段落。
+- 主题支持 paper、sepia、mint、night、blush，亮度支持 dim、normal、bright；所有组合必须采用专用 Token 并满足 WCAG AA。
+- 阅读偏好全局保存在现有 `settings` 记录，刷新后恢复；保存失败不得清空正文或阻塞点词、收藏和复习。
 - 字幕模式当前段正常显示，非当前段降低透明度，段 hover 时恢复。
 - 书页模式关闭字幕聚光，保留舒适排版。
 - 顶部栏和底部进度线在 3 秒无操作后淡出，鼠标进入顶部或触摸顶部时恢复。
 - 桌面视口不小于 1280px 时词卡固定右侧 360px；窄屏使用最高 55vh、可上拖至 85vh 的底部面板。
 - 点词高亮使用荧光笔黄，不移动正文；侧栏出现前后正文边界必须完全一致。
+- 阅读偏好变化不得造成横向滚动、词元行高变化或词卡打开前后正文坐标变化。
+- `Aa` 面板支持 Escape、Tab 顺序、44 px 触控目标和清楚焦点态；关闭后焦点返回触发按钮。
 - Escape 关闭词卡或离开临时层；点击词元不能触发整句翻译。
 - 翻译不替换原文，可按句折叠；精析只由“深入分析”触发。
 - 使用 `prefers-reduced-motion` 时关闭位移和呼吸动画。
@@ -897,6 +1239,8 @@ type AiErrorCode =
 ```
 
 - `settings` 只含非敏感偏好，不包含 API Key。
+- `settings.readingPreferences` 为可选非敏感字段；旧备份缺少该字段时使用默认阅读偏好导入。
+- OCR 原始图片和电子书二进制不属于备份数据，只备份确认后的正文、分段和生词等现有业务记录。
 - 导入先在事务外解析并进行完整 Zod 校验，再展示数量与冲突预览。
 - 合并规则：
   - 内容、词卡同 ID 时取较新 `updatedAt`。
@@ -1011,12 +1355,36 @@ pnpm test:e2e
 
 **退出标准：** PRD AC-01 至 AC-08 全部通过，离线与响应式检查完成，三分钟演示彩排成功。
 
+### R3 后续迭代：多模态实验、电子书与阅读体验
+
+- [x] R3-01 增加 `VITE_ENABLE_OCR_DEMO`、同源 Tesseract 资源、OCR 状态机和可取消识别
+- [x] R3-02 实现图片预览、隐私说明、可编辑标题/正文和失败回退
+- [x] R3-03 实现 EPUB/MOBI/AZW3 无 DRM 纯文本提取和确认写入
+- [x] R3-04 实现阅读偏好类型、设置兼容、`Aa` 面板和五套主题
+- [x] R3-05 覆盖 OCR/电子书/阅读偏好单元、组件和 E2E，运行完整门禁
+- [x] R3-06 使用真实 Tesseract 和 Project Gutenberg 公开领域 EPUB/MOBI/AZW3 样本完成实盘冒烟
+
+**测试门禁：**
+
+```powershell
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm test:e2e
+```
+
+**退出标准：** R3 验收标准全部满足，真实测试结果写入 13.2，且 R0–R2 核心回归测试保持通过。
+
 ## 13. 测试与验收矩阵
 
 | 测试域 | 必测内容 | 证据 |
 | --- | --- | --- |
-| 导入 | TXT/SRT/MD、BOM、非法 UTF-8、空文件、2 MB、重复哈希、损坏 SRT | 单元测试 + E2E |
-| 阅读 | 两种模式、虚拟滚动、当前段、Markdown 安全、代码块不可点 | 组件/E2E |
+| 导入 | TXT/SRT/MD/CSV/DOCX/XLSX、BOM、非法 UTF-8、空文件、2 MB、重复哈希、损坏 SRT | 单元测试 + E2E |
+| R3 OCR | 图片预览、模型加载、识别中、成功/部分/失败/取消、置信度、零写入回退、图片不上传 | 单元 + 组件 + E2E |
+| R3 电子书 | EPUB/MOBI/AZW3、无 DRM 提取、DRM/损坏/50 MB/10 MB、确认写入 | 单元 + E2E + 公开领域实盘 |
+| R3 阅读偏好 | 字号、边距、行高、字体、缩进、五主题、三亮度、持久化、零位移、无横向滚动 | 组件 + E2E + axe |
+| 阅读 | 两种模式、虚拟滚动、当前段、Markdown 安全、代码块不可点、R3 排版 | 组件/E2E |
 | 点词 | 精确词、缩写、连字符、词形还原、未收录、快速切词 | 单元 + E2E |
 | AI | 成功、无 Key、401、断网、超时、429、500、非法 JSON、缓存、迟到响应 | 单元 + 路由模拟 |
 | 生词 | 新增、去重、搜索、筛选、编辑、删除、刷新 | 集成 + E2E |
@@ -1040,6 +1408,20 @@ pnpm test:e2e
 | AC-07 导出与导入 | 阶段三、阶段四 | 自动化通过 |
 | AC-08 范围约束 | 阶段四、发布前 | 自动化通过 |
 
+#### R3 扩展验收映射
+
+| 验收项 | 对应任务 | 当前状态 |
+| --- | --- | --- |
+| R3-AC-01 图片 OCR 后进入可编辑预览 | R3-01 | 自动化通过 |
+| R3-AC-02 确认后进入现有阅读与点词流程 | R3-01、R3-04 | 自动化通过 |
+| R3-AC-03 OCR 失败保留图片并可重试/粘贴 | R3-01、R3-05 | 自动化通过 |
+| R3-AC-04 原图不上传、不落库、不进备份 | R3-01、R3-04 | 自动化通过 |
+| R3-AC-05 OCR flag 关闭时原导入不受影响 | R3-01、R3-05 | 自动化通过 |
+| R3-AC-06 EPUB/MOBI/AZW3 无 DRM 导入 | R3-02、R3-05 | 自动化 + 公开领域实盘通过 |
+| R3-AC-07 电子书失败不污染已有内容 | R3-02、R3-05 | 自动化通过 |
+| R3-AC-08 阅读偏好全局持久化且满足 AA | R3-03、R3-05 | 自动化通过 |
+| R3-AC-09 移动端优先且无横向滚动 | R3-03、R3-05 | 自动化通过 |
+
 ### 13.2 实际测试记录
 
 | 日期 | 阶段 | 命令 | 结果 | 耗时 | 失败原因/修复 | 证据 |
@@ -1060,6 +1442,13 @@ pnpm test:e2e
 | 2026-11-13 | R2 | `pnpm test:e2e` | 11/11 通过 | 24.2s | 无 Key、离线、停止、5xx、非法响应、缓存和布局 | 本文件 |
 | 2026-11-13 | R2 | `pnpm build` | 通过，PWA 19 项预缓存 | 5.6s | 主包 792.08 kB，体积提示不阻断 | `app/dist` |
 | 2026-11-13 | R2 | `pnpm test:e2e` | 12/12 通过 | 27.5s | 补验渐进展示阶段停止、aria-live 唯一性与缓存不写入 | 本文件 |
+| 2026-11-13 | R3 | `pnpm lint` | 通过 | 6.7s | OCR、电子书、阅读偏好和新增测试静态检查通过 | 本文件 |
+| 2026-11-13 | R3 | `pnpm typecheck` | 通过 | 4.6s | 数据格式、偏好 Schema、Tesseract/Foliate 适配层类型通过 | 本文件 |
+| 2026-11-13 | R3 | `pnpm test` | 87/87 通过 | 7.9s | OCR 分档/取消、EPUB/MOBI/AZW3、DRM/超限、主题对比度和设置兼容 | 本文件 |
+| 2026-11-13 | R3 | `pnpm build` | 通过，PWA 24 项预缓存 | 7.9s | 同步 20 个同源 OCR 资产；主包 815.07 kB，体积提示不阻断；OCR 模型不进入预缓存 | `app/dist` |
+| 2026-11-13 | R3 | `pnpm test:e2e` | 18/18 通过 | 34.3s | OCR 成功/失败/取消、偏好持久化、移动面板、axe、旧流程回归 | 本文件 |
+| 2026-11-13 | R3 | `pnpm exec playwright test --project=ocr-live` | 1/1 通过 | 11.7s | 浏览器生成英文页后由真实 Tesseract 识别，无远程图片 POST | 本文件 |
+| 2026-11-13 | R3 | `ebook-live` | EPUB、MOBI、AZW3 均通过 | 1.5–2.5s/本 | Project Gutenberg #1342 公开领域样本在本地导入并进入阅读器 | `app/live-fixtures/`（Git 忽略） |
 | 2026-11-04 | 阶段一 | `pnpm lint` | 通过，1 个非阻断 Fast Refresh 警告 | 2.6s | — | 本文件 |
 | 2026-11-04 | 阶段一 | `pnpm typecheck` | 通过 | 2.8s | 初次测试泛型错误，已修复 | 本文件 |
 | 2026-11-04 | 阶段一 | `pnpm test` | 22/22 通过 | 1.1s | 排除 E2E 目录避免 Vitest 误收集 | 本文件 |
@@ -1120,6 +1509,7 @@ pnpm test:e2e
 - 目标 AI Provider 支持浏览器 CORS；不支持时只能显示明确兼容性错误并降级。
 - Settings 关于区域展示词典来源、许可和应用版本。
 - 正式演示素材为原创或已授权字幕。
+- R3 发布前额外验证：OCR flag 开启/关闭、原图不上传、真实本地 OCR 冒烟、一个无 DRM EPUB 实盘解析、五主题×三亮度对比度。
 
 ## 15. 三分钟演示验收
 
@@ -1134,6 +1524,13 @@ pnpm test:e2e
 | 2:45–3:00 | 边界说明 | 本地优先、无账号；悬浮窗仅在路线图 |
 
 彩排时必须额外验证 AI 失败降级、刷新持久化和 JSON 导入，但这些检查不挤占正式三分钟。
+
+R3 的多模态与电子书能力使用单独短演示，不替代上述三分钟核心闭环：
+
+```text
+开启 OCR flag -> 选择单页图片 -> 本地识别 -> 修正文本 -> 开始阅读
+-> 点词 → 打开阅读设置 → 切主题/字号 → 刷新确认保留
+```
 
 ## 16. 决策记录
 
@@ -1151,6 +1548,11 @@ pnpm test:e2e
 | 2026-11-13 | R2 使用 validated-progressive | 完整结构化 JSON 的部分分片不能可靠校验，展示未验证 JSON 会违反可信原则 | 保持非 SSE 请求，完整校验后逐字段展示，并在代码与文案中明确非真实流式 |
 | 2026-11-13 | R2 自动请求点词 AI | 保持“点词后 AI 出现在需要理解处”的核心体验 | 本地词典进入终态后自动检查缓存并发起请求 |
 | 2026-11-13 | R2 取消时清空未完成 AI 内容 | 避免用户把部分生成误当成完整解释 | 保留本地释义和原句，不写结果、不写缓存 |
+| 2026-11-13 | R3 OCR 使用本地 Tesseract + 同源模型 | 避免上传书页图片，并让 OCR 失败不影响文本主流程 | `VITE_ENABLE_OCR_DEMO` 隔离入口；首次下载模型，确认后才写内容 |
+| 2026-11-13 | R3 电子书只提取无 DRM 纯文本 | 在不引版权书库和 DRM 解密的前提下复用现有阅读器 | EPUB/MOBI/AZW3 动态解析，失败不写库 |
+| 2026-11-13 | R3 阅读偏好为现有 Settings 可选字段 | 保持 Dexie 表、备份 v1 和旧数据兼容 | 旧设置读取时补默认值，不升级数据库版本 |
+| 2026-11-13 | R3 主题 Token 以 TypeScript 单一来源注入 CSS 变量 | 避免面板色块、阅读器主题和对比度测试三份配置漂移 | 五主题×三亮度共用同一数据源 |
+| 2026-11-13 | R3 阅读偏好写入串行排队 | 快速连续点击时防止旧设置晚完成并覆盖新选择 | 本地立即预览，仓库写入按用户操作顺序执行 |
 
 ## 17. 风险与阻塞记录
 
@@ -1164,11 +1566,18 @@ pnpm test:e2e
 | 导入备份数据损坏 | Schema 不匹配或部分记录非法 | 事务前完整校验，失败不写入 | 待验证 |
 | 删除导致复习会话悬空 | 会话含已删除卡 | 读取和评分时过滤，删除时同步清理 | 待验证 |
 | 时间跨日 | 页面跨过本地午夜 | 每次进入复习重算本地日期和到期列表 | 待验证 |
+| OCR 模型过慢或加载失败 | 首次使用、网络受限或设备性能不足 | 显示模型/识别状态和取消；允许重试或改用粘贴；不阻塞原流程 | 已验证：取消/失败/真实识别均通过 |
+| OCR 图片隐私 | 上传、日志或被远程模型处理 | 同源模型、本地内存预览、网络断言和隐私说明 | 已验证：同源资源、无图片上传断言 |
+| 电子书解析兼容 | DRM、格式变体或损坏文件 | 明确失败、不写库；对三种格式分别测试 | 已验证：三种公开领域样本与 DRM/损坏测试 |
+| 阅读主题对比度 | 深浅背景或亮度组合导致辅助文字过浅 | 五主题×三亮度自动化对比度和 axe 门禁 | 已验证：15 组对比度与设置面板 axe |
+| R3 包体增大 | OCR 模型和电子书解析器进入首屏 | 模型首次按需加载；`foliate-js` 动态导入；构建体积记录 | 已缓解：解析器动态拆包；主包体积提示保留 |
 
 ## 18. 变更记录
 
 | 日期 | 版本 | 变更 |
 | --- | --- | --- |
+| 2026-11-13 | v5.1 | R3 实现完成：本地 OCR、EPUB/MOBI/AZW3、阅读偏好与五套主题；87 个单元/组件测试、18 个 E2E、真实 OCR 和三种电子书实盘通过 |
+| 2026-11-13 | v5.0 | 新增 R3 计划：本地 OCR 多模态实验入口、EPUB/MOBI/AZW3 导入、阅读排版与五套主题；锁定隐私、数据兼容、文件白名单和测试门禁 |
 | 2026-11-13 | v4.2 | R2 最终复跑通过：等待与渐进展示阶段均可取消，aria-live 文案不随字段渐显重复 |
 | 2026-11-13 | v4.1 | R2 完成：AI 词义解释状态机、取消、缓存、渐进展示和可访问播报全部通过 |
 | 2026-11-13 | v4.0 | 新增 R2 AI 词义解释状态机计划：15 个目标状态、validated-progressive、取消/超时区分、可访问播报与测试门禁 |

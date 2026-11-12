@@ -1,4 +1,14 @@
-export type ContentFormat = 'TXT' | 'SRT' | 'MD' | 'DOCX' | 'XLSX' | 'CSV'
+export type ContentFormat =
+  | 'TXT'
+  | 'SRT'
+  | 'MD'
+  | 'DOCX'
+  | 'XLSX'
+  | 'CSV'
+  | 'EPUB'
+  | 'MOBI'
+  | 'AZW3'
+  | 'OCR'
 export type ReadingMode = 'subtitle' | 'page'
 export type Rating = 'forgot' | 'fuzzy' | 'know'
 export type SegmentKind =
@@ -104,7 +114,28 @@ export interface Settings {
   apiKey: string
   model: string
   timeoutSeconds: 5 | 10 | 20
+  readingPreferences?: ReadingPreferences
   updatedAt: string
+}
+
+export interface ReadingPreferences {
+  fontFamily: 'serif' | 'sans'
+  fontSize: 16 | 18 | 20 | 22 | 24
+  margin: 'small' | 'medium' | 'large'
+  lineHeight: 'tight' | 'normal' | 'loose'
+  firstLineIndent: boolean
+  theme: 'paper' | 'sepia' | 'mint' | 'night' | 'blush'
+  brightness: 'dim' | 'normal' | 'bright'
+}
+
+export const DEFAULT_READING_PREFERENCES: ReadingPreferences = {
+  fontFamily: 'serif',
+  fontSize: 20,
+  margin: 'medium',
+  lineHeight: 'normal',
+  firstLineIndent: false,
+  theme: 'paper',
+  brightness: 'bright'
 }
 
 export interface AiCacheRecord {
@@ -144,6 +175,49 @@ export interface ParsedContent {
   segments: Segment[]
   wordCount: number
   warnings: string[]
+}
+
+export type OcrPhase =
+  | 'idle'
+  | 'model-loading'
+  | 'recognizing'
+  | 'success'
+  | 'partial'
+  | 'failed'
+  | 'cancelled'
+
+export interface OcrResult {
+  text: string
+  confidence: number
+  wordCount: number
+  warnings: string[]
+}
+
+export interface OcrProgress {
+  phase: 'model-loading' | 'recognizing'
+  progress: number
+}
+
+export interface OcrClient {
+  recognize(
+    image: Blob,
+    signal: AbortSignal,
+    onProgress?: (progress: OcrProgress) => void
+  ): Promise<OcrResult>
+}
+
+export interface ExtractedEbook {
+  title: string
+  format: 'EPUB' | 'MOBI' | 'AZW3'
+  rawText: string
+  segments: Segment[]
+  wordCount: number
+  chapterCount: number
+  warnings: string[]
+}
+
+export interface EbookExtractor {
+  extract(file: File, signal?: AbortSignal): Promise<ExtractedEbook>
 }
 
 export interface WordExplainInput {

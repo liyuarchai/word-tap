@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import writeExcelFile from 'write-excel-file/node'
 import { demoSrt } from './fixtures'
@@ -154,6 +155,7 @@ test('@visual responsive app has no horizontal overflow and word panel does not 
     )
   expect(undersizedWordHits).toEqual([])
   await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.locator('article').first()).toHaveCSS('font-size', '17px')
   await page.getByRole('button', { name: 'resilient', exact: true }).click()
   const mobilePanel = page.getByRole('complementary', { name: '词卡详情' })
   await expect(mobilePanel).toBeVisible()
@@ -173,6 +175,215 @@ test('@visual responsive app has no horizontal overflow and word panel does not 
       `${route} has serious or critical accessibility violations`
     ).toHaveLength(0)
   }
+})
+
+test('@visual OCR page becomes editable reading and reading preferences persist', async ({
+  page
+}) => {
+  const remoteRequests: string[] = []
+  page.on('request', (request) => {
+    if (request.method() === 'POST') remoteRequests.push(request.url())
+  })
+  await reset(page, true)
+  await page.goto('/library?mock=1&ocrMock=success')
+  await page.getByRole('button', { name: '导入内容' }).click()
+  await page.getByRole('tab', { name: '拍照/选择书页' }).click()
+  await page.getByLabel('选择书页图片').setInputFiles({
+    name: 'page.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zr8sAAAAASUVORK5CYII=',
+      'base64'
+    )
+  })
+  await page.getByRole('button', { name: '开始本地识别' }).click()
+  await expect(page.getByText('识别完成，请核对标题和正文。')).toBeVisible()
+  const body = page.getByLabel('OCR 识别正文')
+  await body.fill(
+    'The team stayed resilient through a difficult year.\n\nKeep reading every day.'
+  )
+  await page.getByLabel('OCR 标题').fill('Camera page')
+  await page.getByRole('button', { name: '开始阅读' }).click()
+  await expect(page).toHaveURL(/\/reader\//)
+  const storedContents = await page.evaluate(
+    () =>
+      new Promise<unknown[]>((resolve, reject) => {
+        const open = indexedDB.open('wordtap')
+        open.onerror = () => reject(open.error)
+        open.onsuccess = () => {
+          const request = open.result
+            .transaction('contents', 'readonly')
+            .objectStore('contents')
+            .getAll()
+          request.onsuccess = () => resolve(request.result)
+          request.onerror = () => reject(request.error)
+        }
+      })
+  )
+  expect(storedContents).toEqual([
+    expect.objectContaining({ format: 'OCR', title: 'Camera page' })
+  ])
+  expect(JSON.stringify(storedContents)).not.toContain('data:image')
+  await page.getByRole('button', { name: 'resilient', exact: true }).click()
+  await expect(page.getByRole('complementary', { name: '词卡详情' })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.getByRole('button', { name: '返回内容库' }).focus()
+  await page.getByRole('button', { name: '阅读设置' }).click()
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 })
+    const settingsBox = await page.getByRole('dialog', { name: '阅读设置' }).boundingBox()
+    expect(settingsBox?.width).toBeLessThanOrEqual(width)
+    expect(settingsBox?.y ?? 844).toBeGreaterThan(0)
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+      )
+    ).toBe(false)
+  }
+  const settingsAxe = await new AxeBuilder({ page })
+    .include('[role="dialog"]')
+    .analyze()
+  expect(
+    settingsAxe.violations.filter(
+      (item) => item.impact === 'serious' || item.impact === 'critical'
+    )
+  ).toHaveLength(0)
+  await page.getByRole('button', { name: '24' }).click()
+  await page.getByRole('button', { name: '主题 夜间' }).click()
+  await page.getByRole('button', { name: '大' }).click()
+  await page.getByRole('button', { name: '松' }).click()
+  await page.keyboard.press('Escape')
+  await page.reload()
+  const reader = page.locator('[data-theme]')
+  await expect(reader).toHaveAttribute('data-theme', 'night')
+  await expect(reader).toHaveAttribute('data-margin', 'large')
+  const readerArticle = page.locator('article').first()
+  await expect(readerArticle).toHaveCSS('font-size', '24px')
+  const beforePanel = await readerArticle.boundingBox()
+  await page.getByRole('button', { name: 'resilient', exact: true }).click()
+  await expect(page.getByRole('complementary', { name: '词卡详情' })).toBeVisible()
+  const afterPanel = await readerArticle.boundingBox()
+  expect(afterPanel?.x).toBe(beforePanel?.x)
+  expect(afterPanel?.width).toBe(beforePanel?.width)
+  await page.keyboard.press('Escape')
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+  )
+  expect(overflow).toBe(false)
+  expect(remoteRequests).toEqual([])
+})
+
+test('@visual failed OCR keeps the local preview and creates no library content', async ({
+  page
+}) => {
+  await reset(page, true)
+  await page.goto('/library?mock=1&ocrMock=failed')
+  await page.getByRole('button', { name: '导入内容' }).click()
+  await page.getByRole('tab', { name: '拍照/选择书页' }).click()
+  await page.getByLabel('选择书页图片').setInputFiles({
+    name: 'blank.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zr8sAAAAASUVORK5CYII=',
+      'base64'
+    )
+  })
+  await page.getByRole('button', { name: '开始本地识别' }).click()
+  await expect(page.getByText('OCR 没有完成，请重试或改用粘贴文本。')).toBeVisible()
+  await expect(page.getByAltText('待识别的书页预览')).toBeVisible()
+  await expect(page.getByRole('button', { name: '开始阅读' })).toBeDisabled()
+  await page.getByRole('button', { name: '关闭' }).click()
+  await expect(page.getByText('还没有内容。')).toBeVisible()
+})
+
+test('@ocr-live Tesseract recognizes a generated English page without uploading it', async ({
+  page,
+  context
+}) => {
+  test.slow()
+  await reset(page, true)
+  const fixturePage = await context.newPage()
+  await fixturePage.setViewportSize({ width: 1000, height: 360 })
+  await fixturePage.setContent(`
+    <style>
+      body { margin: 0; background: white; color: #111; }
+      main { padding: 64px 72px; font: 62px/1.35 Arial, sans-serif; }
+    </style>
+    <main>The team stayed resilient.<br>Keep reading every day.</main>
+  `)
+  const image = await fixturePage.screenshot({ type: 'png' })
+  await fixturePage.close()
+
+  await page.goto('/library?mock=1')
+  await page.getByRole('button', { name: '导入内容' }).click()
+  await page.getByRole('tab', { name: '拍照/选择书页' }).click()
+  await page.getByLabel('选择书页图片').setInputFiles({
+    name: 'english-page.png',
+    mimeType: 'image/png',
+    buffer: image
+  })
+  await page.getByRole('button', { name: '开始本地识别' }).click()
+  const result = page.getByLabel('OCR 识别正文')
+  await expect(result).toBeVisible({ timeout: 60_000 })
+  await expect(result).toHaveValue(/resilient/i)
+  await expect(page.getByText(/平均置信度 \d+%/)).toBeVisible()
+})
+
+test('@ebook-live imports a public-domain MOBI sample when provided locally', async ({
+  page
+}) => {
+  const sample =
+    process.env.WORDTAP_LIVE_MOBI ??
+    resolve('live-fixtures/pride-and-prejudice.mobi')
+  test.skip(!existsSync(sample), 'Place a public-domain MOBI sample in live-fixtures.')
+  test.slow()
+  await reset(page)
+  await page.getByRole('button', { name: '导入内容' }).click()
+  await page.getByRole('tab', { name: '文件' }).click()
+  await page.getByLabel('选择导入文件').setInputFiles(sample!)
+  await expect(page.getByLabel('电子书标题')).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText(/已提取 \d+ 个章节/)).toBeVisible()
+  await page.getByRole('button', { name: '开始阅读' }).click()
+  await expect(page).toHaveURL(/\/reader\//)
+  await expect(page.getByRole('button', { name: 'Project', exact: true }).first()).toBeVisible()
+})
+
+test('@ebook-live imports a public-domain EPUB sample when provided locally', async ({
+  page
+}) => {
+  const sample =
+    process.env.WORDTAP_LIVE_EPUB ?? resolve('live-fixtures/pride-and-prejudice.epub')
+  test.skip(!existsSync(sample), 'Place a public-domain EPUB sample in live-fixtures.')
+  test.slow()
+  await reset(page)
+  await page.getByRole('button', { name: '导入内容' }).click()
+  await page.getByRole('tab', { name: '文件' }).click()
+  await page.getByLabel('选择导入文件').setInputFiles(sample)
+  await expect(page.getByLabel('电子书标题')).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText(/已提取 \d+ 个章节/)).toBeVisible()
+  await page.getByRole('button', { name: '开始阅读' }).click()
+  await expect(page).toHaveURL(/\/reader\//)
+  await expect(page.getByRole('button', { name: 'Project', exact: true }).first()).toBeVisible()
+})
+
+test('@ebook-live imports a public-domain KF8/AZW3 sample when provided locally', async ({
+  page
+}) => {
+  const sample =
+    process.env.WORDTAP_LIVE_AZW3 ?? resolve('live-fixtures/pride-and-prejudice.azw3')
+  test.skip(!existsSync(sample), 'Place a public-domain AZW3 sample in live-fixtures.')
+  test.slow()
+  await reset(page)
+  await page.getByRole('button', { name: '导入内容' }).click()
+  await page.getByRole('tab', { name: '文件' }).click()
+  await page.getByLabel('选择导入文件').setInputFiles(sample)
+  await expect(page.getByLabel('电子书标题')).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText(/已提取 \d+ 个章节/)).toBeVisible()
+  await page.getByRole('button', { name: '开始阅读' }).click()
+  await expect(page).toHaveURL(/\/reader\//)
+  await expect(page.getByRole('button', { name: 'Project', exact: true }).first()).toBeVisible()
 })
 
 test('@mock import, collect three words, edit, review and export Obsidian', async ({ page }) => {
@@ -245,7 +456,7 @@ test('@mock import, collect three words, edit, review and export Obsidian', asyn
   await page.goto('/library')
   await page.getByRole('button', { name: '导入内容' }).click()
   await page.getByRole('tab', { name: '文件' }).click()
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByLabel('选择导入文件').setInputFiles({
     name: 'vocabulary.csv',
     mimeType: 'text/csv',
     buffer: Buffer.from('word,meaning\nresilient,有韧性的')
@@ -256,7 +467,7 @@ test('@mock import, collect three words, edit, review and export Obsidian', asyn
   await page.getByRole('button', { name: '返回内容库' }).click()
   await page.getByRole('button', { name: '导入内容' }).click()
   await page.getByRole('tab', { name: '文件' }).click()
-  await page.locator('input[type="file"]').setInputFiles(
+  await page.getByLabel('选择导入文件').setInputFiles(
     resolve('node_modules/mammoth/test/test-data/single-paragraph.docx')
   )
   await page.getByRole('button', { name: '开始阅读' }).click()
@@ -269,7 +480,7 @@ test('@mock import, collect three words, edit, review and export Obsidian', asyn
   await page.getByRole('button', { name: '返回内容库' }).click()
   await page.getByRole('button', { name: '导入内容' }).click()
   await page.getByRole('tab', { name: '文件' }).click()
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.getByLabel('选择导入文件').setInputFiles({
     name: 'vocabulary.xlsx',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     buffer: workbook

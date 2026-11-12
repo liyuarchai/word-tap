@@ -9,22 +9,26 @@ import type {
   AiClient,
   AppRepository,
   ContentRecord,
+  OcrClient,
   Settings,
   VocabularyRecord
 } from '../domain/types'
 import { DexieRepository, defaultSettings } from '../db/repository'
 import { HttpAiClient } from '../services/ai'
 import { loadDictionary } from '../services/dictionary'
+import { TesseractOcrClient } from '../services/ocr'
 import { AppContext, type AppContextValue } from './appContextValue'
 
 export function AppProvider({
   children,
   repository: injectedRepository,
-  aiClient: injectedAiClient
+  aiClient: injectedAiClient,
+  ocrClient: injectedOcrClient
 }: {
   children: ReactNode
   repository?: AppRepository
   aiClient?: AiClient
+  ocrClient?: OcrClient
 }) {
   const repository = useMemo(
     () => injectedRepository ?? new DexieRepository(),
@@ -40,6 +44,10 @@ export function AppProvider({
   const aiClient = useMemo<AiClient>(
     () => injectedAiClient ?? new HttpAiClient(settings),
     [injectedAiClient, settings]
+  )
+  const ocrClient = useMemo<OcrClient>(
+    () => injectedOcrClient ?? new TesseractOcrClient(),
+    [injectedOcrClient]
   )
 
   const notify = useCallback((nextMessage: string) => {
@@ -91,6 +99,7 @@ export function AppProvider({
     () => ({
       repository,
       aiClient,
+      ocrClient,
       contents,
       vocabulary,
       settings,
@@ -105,6 +114,7 @@ export function AppProvider({
     [
       repository,
       aiClient,
+      ocrClient,
       contents,
       vocabulary,
       settings,

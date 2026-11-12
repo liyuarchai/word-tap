@@ -12,4 +12,7 @@ Thumbs.db
 .env
 .env.*
 !/.env.example
+!app/.env.example
+app/public/ocr/
+app/live-fixtures/
 

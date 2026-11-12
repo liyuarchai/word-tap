@@ -8,7 +8,9 @@ import { ReviewHomePage } from './review/ReviewPages'
 import { SettingsPage } from './settings/SettingsPage'
 import { NotebookPage } from './vocabulary/NotebookPage'
 import { ImportDialog } from './library/ImportDialog'
-import type { VocabularyRecord } from '../domain/types'
+import { ReadingPreferencesPanel } from './reader/ReadingPreferencesPanel'
+import type { OcrClient, VocabularyRecord } from '../domain/types'
+import { DEFAULT_READING_PREFERENCES } from '../domain/types'
 import { MockAiClient } from '../services/mockAi'
 
 const srt = `1
@@ -35,6 +37,142 @@ describe('differentiated UI modules', () => {
       mode: 'subtitle',
       title: '1'
     })
+  })
+
+  it('keeps the OCR experiment hidden when its feature flag is disabled', () => {
+    render(
+      <ImportDialog
+        contents={[]}
+        ocrDemoEnabled={false}
+        onClose={() => undefined}
+        onSave={vi.fn()}
+      />
+    )
+    expect(screen.queryByRole('tab', { name: '拍照/选择书页' })).not.toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '粘贴' })).toBeVisible()
+    expect(screen.getByRole('tab', { name: '文件' })).toBeVisible()
+  })
+
+  it('exposes EPUB, MOBI and AZW3 without replacing the existing file input', async () => {
+    const user = userEvent.setup()
+    render(
+      <ImportDialog contents={[]} onClose={() => undefined} onSave={vi.fn()} />
+    )
+    await user.click(screen.getByRole('tab', { name: '文件' }))
+    expect(screen.getByLabelText('选择导入文件')).toHaveAttribute(
+      'accept',
+      expect.stringContaining('.epub')
+    )
+    expect(screen.getByLabelText('选择导入文件').getAttribute('accept')).toContain('.mobi')
+    expect(screen.getByLabelText('选择导入文件').getAttribute('accept')).toContain('.azw3')
+  })
+
+  it('turns a locally recognized page into editable text and one OCR content write', async () => {
+    const user = userEvent.setup()
+    const onSave = vi.fn().mockResolvedValue(undefined)
+    const ocrClient: OcrClient = {
+      recognize: vi.fn().mockResolvedValue({
+        text: 'The team stayed resilient through a difficult year.',
+        confidence: 88,
+        wordCount: 8,
+        warnings: []
+      })
+    }
+    render(
+      <ImportDialog
+        contents={[]}
+        ocrClient={ocrClient}
+        ocrDemoEnabled
+        onClose={() => undefined}
+        onSave={onSave}
+      />
+    )
+    await user.click(screen.getByRole('tab', { name: '拍照/选择书页' }))
+    await user.upload(
+      screen.getByLabelText('选择书页图片'),
+      new File(['image'], 'page.jpg', { type: 'image/jpeg' })
+    )
+    expect(screen.getByAltText('待识别的书页预览')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: '开始本地识别' }))
+    await waitFor(() => expect(screen.getByLabelText('OCR 识别正文')).toBeVisible())
+    expect(onSave).not.toHaveBeenCalled()
+    await user.clear(screen.getByLabelText('OCR 标题'))
+    await user.type(screen.getByLabelText('OCR 标题'), 'Edited page')
+    await user.click(screen.getByRole('button', { name: '开始阅读' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce())
+    expect(onSave.mock.calls[0][0]).toMatchObject({
+      title: 'Edited page',
+      format: 'OCR',
+      sourceName: 'page.jpg'
+    })
+  })
+
+  it('retains the page preview and writes nothing when OCR finds no text', async () => {
+    const user = userEvent.setup()
+    const onSave = vi.fn()
+    const ocrClient: OcrClient = {
+      recognize: vi.fn().mockResolvedValue({
+        text: '',
+        confidence: 0,
+        wordCount: 0,
+        warnings: []
+      })
+    }
+    render(
+      <ImportDialog
+        contents={[]}
+        ocrClient={ocrClient}
+        ocrDemoEnabled
+        onClose={() => undefined}
+        onSave={onSave}
+      />
+    )
+    await user.click(screen.getByRole('tab', { name: '拍照/选择书页' }))
+    await user.upload(
+      screen.getByLabelText('选择书页图片'),
+      new File(['image'], 'blank.png', { type: 'image/png' })
+    )
+    await user.click(screen.getByRole('button', { name: '开始本地识别' }))
+    await waitFor(() => expect(screen.getByText('OCR 没有完成，请重试或改用粘贴文本。')).toBeVisible())
+    expect(screen.getByAltText('待识别的书页预览')).toBeVisible()
+    expect(screen.getByRole('button', { name: '开始阅读' })).toBeDisabled()
+    expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('cancels OCR without writing content and keeps the source image', async () => {
+    const user = userEvent.setup()
+    const onSave = vi.fn()
+    const ocrClient: OcrClient = {
+      recognize: vi.fn(
+        (_image: Blob, signal: AbortSignal) =>
+          new Promise<never>((_, reject) => {
+            signal.addEventListener(
+              'abort',
+              () => reject(new DOMException('OCR 已取消', 'AbortError')),
+              { once: true }
+            )
+          })
+      )
+    }
+    render(
+      <ImportDialog
+        contents={[]}
+        ocrClient={ocrClient}
+        ocrDemoEnabled
+        onClose={() => undefined}
+        onSave={onSave}
+      />
+    )
+    await user.click(screen.getByRole('tab', { name: '拍照/选择书页' }))
+    await user.upload(
+      screen.getByLabelText('选择书页图片'),
+      new File(['image'], 'page.jpg', { type: 'image/jpeg' })
+    )
+    await user.click(screen.getByRole('button', { name: '开始本地识别' }))
+    await user.click(screen.getByRole('button', { name: '停止识别' }))
+    await waitFor(() => expect(screen.getByText('已停止识别，原图仍保留在本地。')).toBeVisible())
+    expect(screen.getByAltText('待识别的书页预览')).toBeVisible()
+    expect(onSave).not.toHaveBeenCalled()
   })
 
   it('renders empty notebook, review and settings states', async () => {
@@ -128,6 +266,27 @@ describe('differentiated UI modules', () => {
       await aiClient.connectionWait
     })
     await waitFor(() => expect(screen.getByText('连接成功')).toBeVisible())
+  })
+
+  it('offers accessible reading typography and theme controls', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(
+      <ReadingPreferencesPanel
+        preferences={DEFAULT_READING_PREFERENCES}
+        onChange={onChange}
+        onClose={() => undefined}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: '24' }))
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ fontSize: 24 })
+    )
+    await user.click(screen.getByRole('button', { name: '主题 夜间' }))
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ theme: 'night' })
+    )
+    expect(screen.getByRole('dialog', { name: '阅读设置' })).toBeVisible()
   })
 })
 

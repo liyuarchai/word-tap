@@ -3,6 +3,7 @@ import type {
   AiClient,
   AppRepository,
   ContentRecord,
+  OcrClient,
   Settings,
   VocabularyRecord
 } from '../domain/types'
@@ -10,6 +11,7 @@ import type {
 export interface AppContextValue {
   repository: AppRepository
   aiClient: AiClient
+  ocrClient: OcrClient
   contents: ContentRecord[]
   vocabulary: VocabularyRecord[]
   settings: Settings

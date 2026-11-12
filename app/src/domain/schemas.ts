@@ -21,7 +21,18 @@ export const segmentSchema = z.object({
 export const contentSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  format: z.enum(['TXT', 'SRT', 'MD', 'DOCX', 'XLSX', 'CSV']),
+  format: z.enum([
+    'TXT',
+    'SRT',
+    'MD',
+    'DOCX',
+    'XLSX',
+    'CSV',
+    'EPUB',
+    'MOBI',
+    'AZW3',
+    'OCR'
+  ]),
   rawText: z.string(),
   segments: z.array(segmentSchema),
   sourceName: z.string(),
@@ -84,12 +95,29 @@ export const reviewSessionSchema = z.object({
   completedAt: z.string().optional()
 })
 
+export const readingPreferencesSchema = z.object({
+  fontFamily: z.enum(['serif', 'sans']),
+  fontSize: z.union([
+    z.literal(16),
+    z.literal(18),
+    z.literal(20),
+    z.literal(22),
+    z.literal(24)
+  ]),
+  margin: z.enum(['small', 'medium', 'large']),
+  lineHeight: z.enum(['tight', 'normal', 'loose']),
+  firstLineIndent: z.boolean(),
+  theme: z.enum(['paper', 'sepia', 'mint', 'night', 'blush']),
+  brightness: z.enum(['dim', 'normal', 'bright'])
+})
+
 export const settingsSchema = z.object({
   id: z.literal('app'),
   apiBaseUrl: z.string().url(),
   apiKey: z.string(),
   model: z.string().min(1),
   timeoutSeconds: z.union([z.literal(5), z.literal(10), z.literal(20)]),
+  readingPreferences: readingPreferencesSchema.optional(),
   updatedAt: z.string()
 })
 

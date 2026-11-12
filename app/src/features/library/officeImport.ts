@@ -94,6 +94,9 @@ export async function extractImportFile(file: File): Promise<ExtractedFile> {
     return { rawText, format: 'XLSX', title }
   }
 
-  throw new Error('仅支持 TXT、SRT、Markdown、CSV、DOCX 和 XLSX 文件。')
+  if (['epub', 'mobi', 'azw3'].includes(extension)) {
+    throw new Error('电子书需要使用专用本地解析入口。')
+  }
+  throw new Error('仅支持 TXT、SRT、Markdown、CSV、DOCX、XLSX、EPUB、MOBI 和 AZW3 文件。')
 }
 

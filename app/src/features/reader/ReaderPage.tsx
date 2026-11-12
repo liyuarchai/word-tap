@@ -1,10 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties
+} from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useApp } from '../../app/useApp'
 import { Icon } from '../../components/Icon'
 import type {
   ContentRecord,
+  ReadingPreferences,
   SentenceAnalysis,
   Segment,
   VocabularyRecord
@@ -19,7 +26,10 @@ import {
 import { buildLocalGloss } from '../../services/dictionary'
 import { MarkdownBlock } from './MarkdownBlock'
 import { WordPanel } from './WordPanel'
+import { ReadingPreferencesPanel } from './ReadingPreferencesPanel'
+import { readingThemeVariables } from './readingThemes'
 import styles from '../../styles/app.module.css'
+import { DEFAULT_READING_PREFERENCES } from '../../domain/types'
 
 interface SegmentTranslationState {
   status?: 'loading' | 'success' | 'error'
@@ -54,6 +64,7 @@ export function ReaderPage() {
     aiClient,
     aiEnabled,
     settings,
+    saveSettings,
     notify
   } = useApp()
   const [content, setContent] = useState<ContentRecord | null>(null)
@@ -61,11 +72,65 @@ export function ReaderPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [chromeVisible, setChromeVisible] = useState(true)
   const [progress, setProgress] = useState(0)
+  const [readingSettingsOpen, setReadingSettingsOpen] = useState(false)
+  const [readingPreferences, setReadingPreferences] = useState<ReadingPreferences>(
+    settings.readingPreferences ?? DEFAULT_READING_PREFERENCES
+  )
+  const [readingPreferencesActive, setReadingPreferencesActive] = useState(
+    Boolean(settings.readingPreferences)
+  )
   const [translations, setTranslations] = useState<Record<number, SegmentTranslationState>>({})
   const scrollRef = useRef<HTMLDivElement>(null)
   const hideTimer = useRef<number | null>(null)
   const activeOperations = useRef<Map<string, ActiveAiOperation>>(new Map())
   const operationSequence = useRef(0)
+  const settingsRef = useRef(settings)
+  const preferenceSaveQueue = useRef(Promise.resolve())
+  settingsRef.current = settings
+
+  useEffect(() => {
+    if (settings.readingPreferences) {
+      setReadingPreferences(settings.readingPreferences)
+      setReadingPreferencesActive(true)
+    }
+  }, [settings.readingPreferences])
+
+  const saveReadingPreferences = (next: ReadingPreferences) => {
+    setReadingPreferences(next)
+    setReadingPreferencesActive(true)
+    preferenceSaveQueue.current = preferenceSaveQueue.current
+      .catch(() => undefined)
+      .then(() =>
+        saveSettings({
+          ...settingsRef.current,
+          readingPreferences: next
+        })
+      )
+      .catch((error: unknown) => {
+        notify(
+          error instanceof Error
+            ? `阅读设置保存失败：${error.message}`
+            : '阅读设置保存失败，当前正文不受影响。'
+        )
+      })
+  }
+
+  const readerStyle = {
+    ...readingThemeVariables(readingPreferences.theme, readingPreferences.brightness),
+    ...(readingPreferencesActive
+      ? {
+          '--reader-font-size': `${readingPreferences.fontSize}px`,
+          '--reader-line-height':
+            readingPreferences.lineHeight === 'tight'
+              ? '1.6'
+              : readingPreferences.lineHeight === 'loose'
+                ? '2'
+                : '1.8',
+          '--reader-font-family':
+            readingPreferences.fontFamily === 'sans' ? 'var(--sans)' : 'var(--serif)'
+        }
+      : {})
+  } as CSSProperties
 
   useEffect(() => {
     const found = contents.find((item) => item.id === contentId)
@@ -370,7 +435,16 @@ export function ReaderPage() {
   }
 
   return (
-    <div className={styles.readerPage}>
+    <div
+      className={styles.readerPage}
+      data-theme={readingPreferences.theme}
+      data-brightness={readingPreferences.brightness}
+      data-margin={readingPreferencesActive ? readingPreferences.margin : undefined}
+      data-first-line-indent={
+        readingPreferencesActive && readingPreferences.firstLineIndent ? 'true' : 'false'
+      }
+      style={readerStyle}
+    >
       <header
         className={`${styles.readerChrome} ${chromeVisible ? '' : styles.chromeHidden}`}
         onPointerEnter={() => setChromeVisible(true)}
@@ -387,6 +461,18 @@ export function ReaderPage() {
         </div>
         <div className={styles.readerTitle}>{content.title}</div>
         <div className={styles.modeSwitch} style={{ justifySelf: 'end' }}>
+          <button
+            className={styles.readerSettingsButton}
+            type="button"
+            aria-label="阅读设置"
+            onClick={() => {
+              setSelected(null)
+              setReadingSettingsOpen(true)
+              resetChromeTimer()
+            }}
+          >
+            Aa
+          </button>
           <button
             className={`${styles.modeButton} ${
               content.mode === 'subtitle' ? styles.activeMode : ''
@@ -445,6 +531,7 @@ export function ReaderPage() {
                   style={{ transform: `translateY(${virtualRow.start}px)` }}
                 >
                   <article
+                    data-segment-kind={segment.kind}
                     className={`${styles.segment} ${
                       content.mode === 'subtitle' && segment.kind === 'subtitle'
                         ? styles.subtitleSegment
@@ -538,6 +625,13 @@ export function ReaderPage() {
           onClose={() => setSelected(null)}
           onSave={saveVocabulary}
           onUpdate={updateVocabulary}
+        />
+      ) : null}
+      {readingSettingsOpen ? (
+        <ReadingPreferencesPanel
+          preferences={readingPreferences}
+          onChange={saveReadingPreferences}
+          onClose={() => setReadingSettingsOpen(false)}
         />
       ) : null}
     </div>

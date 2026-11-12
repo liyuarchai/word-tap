@@ -8,7 +8,7 @@ import type {
   Settings,
   VocabularyRecord
 } from '../domain/types'
-import { defaultSettings } from './repository'
+import { defaultSettings, mergeReadingPreferences } from './repository'
 
 export class MemoryRepository implements AppRepository {
   contents: ContentRecord[] = []
@@ -105,7 +105,8 @@ export class MemoryRepository implements AppRepository {
         settings: {
           apiBaseUrl: this.settings.apiBaseUrl,
           model: this.settings.model,
-          timeoutSeconds: this.settings.timeoutSeconds
+          timeoutSeconds: this.settings.timeoutSeconds,
+          readingPreferences: this.settings.readingPreferences
         }
       }
     }
@@ -159,12 +160,20 @@ export class MemoryRepository implements AppRepository {
         })
       }
     }
-    this.settings = {
+    const importedSettings: Settings = {
       ...this.settings,
       ...backup.data.settings,
       id: 'app',
       updatedAt: new Date().toISOString()
     }
+    if (backup.data.settings.readingPreferences) {
+      importedSettings.readingPreferences = mergeReadingPreferences(
+        backup.data.settings.readingPreferences
+      )
+    } else {
+      delete importedSettings.readingPreferences
+    }
+    this.settings = importedSettings
     return preview
   }
   async clearAll() {

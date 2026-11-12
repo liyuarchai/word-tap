@@ -1,3 +1,4 @@
 allowBuilds:
   ecdict: false
   esbuild: true
+  tesseract.js: true

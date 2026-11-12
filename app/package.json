@@ -4,19 +4,22 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "pnpm ocr:sync && vite",
+    "build": "pnpm ocr:sync && tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "dictionary:build": "node --experimental-strip-types scripts/build-dictionary.ts"
+    "dictionary:build": "node --experimental-strip-types scripts/build-dictionary.ts",
+    "ocr:sync": "node scripts/sync-ocr-assets.mjs"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.14.0",
+    "@tesseract.js-data/eng": "^1.0.0",
     "dexie": "^4.2.0",
+    "foliate-js": "1.0.1",
     "mammoth": "^1.13.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -25,6 +28,7 @@
     "read-excel-file": "^9.3.14",
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
+    "tesseract.js": "^7.0.0",
     "zod": "^4.1.0"
   },
   "devDependencies": {
@@ -55,4 +59,3 @@
     "write-excel-file": "^4.1.1"
   }
 }
-

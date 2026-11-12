@@ -9,7 +9,7 @@ import { ImportDialog } from './ImportDialog'
 import styles from '../../styles/app.module.css'
 
 export function LibraryPage() {
-  const { contents, vocabulary, repository, refresh, loading, notify } = useApp()
+  const { contents, vocabulary, repository, refresh, loading, notify, ocrClient } = useApp()
   const [importing, setImporting] = useState(false)
   const [renaming, setRenaming] = useState<ContentRecord | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -84,6 +84,7 @@ export function LibraryPage() {
         {importing ? (
           <ImportDialog
             contents={contents}
+            ocrClient={ocrClient}
             onClose={() => setImporting(false)}
             onSave={async (content) => {
               await repository.addContent(content)
@@ -198,6 +199,7 @@ export function LibraryPage() {
       {importing ? (
         <ImportDialog
           contents={contents}
+          ocrClient={ocrClient}
           onClose={() => setImporting(false)}
           onSave={async (content) => {
             await repository.addContent(content)
