@@ -6,6 +6,7 @@ import {
   HttpAiClient,
   readValidatedCache
 } from './ai'
+import { buildWordExplanationPrompt } from './aiPrompts'
 
 const settings: Settings = {
   id: 'app',
@@ -49,6 +50,21 @@ describe('HttpAiClient', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer test-key' })
       })
     )
+    const request = fetchMock.mock.calls[0][1] as RequestInit
+    const body = JSON.parse(String(request.body)) as {
+      messages: Array<{ role: string; content: string }>
+    }
+    const sharedPrompt = buildWordExplanationPrompt({
+      word: 'resilient',
+      lemma: 'resilient',
+      sentence: 'They stayed resilient.'
+    })
+    expect(body.messages[1]).toEqual({
+      role: 'user',
+      content: sharedPrompt.user
+    })
+    expect(body.messages[0].content).toContain(sharedPrompt.system)
+    expect(body.messages[0].content).toContain('只返回合法 JSON')
   })
 
   it('reports missing keys without making a request', async () => {

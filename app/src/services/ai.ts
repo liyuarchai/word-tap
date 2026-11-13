@@ -14,16 +14,12 @@ import {
   wordExplanationSchema
 } from '../domain/schemas'
 import { sha256 } from '../domain/text'
-
-function buildContext(input: { sentence: string; contextBefore?: string; contextAfter?: string }) {
-  return [
-    input.contextBefore ? `前一句：${input.contextBefore}` : '',
-    `当前句：${input.sentence}`,
-    input.contextAfter ? `后一句：${input.contextAfter}` : ''
-  ]
-    .filter(Boolean)
-    .join('\n')
-}
+import {
+  buildAnalysisPrompt,
+  buildConnectionPrompt,
+  buildTranslationPrompt,
+  buildWordExplanationPrompt
+} from './aiPrompts'
 
 function extractJson(content: string): unknown {
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]
@@ -193,27 +189,30 @@ export class HttpAiClient implements AiClient {
   }
 
   explainWord(input: WordExplainInput, signal: AbortSignal) {
+    const prompt = buildWordExplanationPrompt(input)
     return this.request(
-      '你是英语精读助手。结合上下文解释单词，用中文回答，例句保持简短。输出字段：contextMeaning、clue、example、exampleZh。',
-      `单词：${input.word}\n原形：${input.lemma}\n${buildContext({ sentence: input.sentence, contextBefore: input.contextBefore, contextAfter: input.contextAfter })}`,
+      prompt.system,
+      prompt.user,
       wordExplanationSchema,
       signal
     )
   }
 
   translateSentence(input: SentenceInput, signal: AbortSignal) {
+    const prompt = buildTranslationPrompt(input)
     return this.request<SentenceTranslation>(
-      '你是英译中助手。只输出自然、准确的中文译文。输出字段：translation。',
-      buildContext(input),
+      prompt.system,
+      prompt.user,
       translationSchema,
       signal
     )
   }
 
   analyzeSentence(input: SentenceInput, signal: AbortSignal) {
+    const prompt = buildAnalysisPrompt(input)
     return this.request<SentenceAnalysis>(
-      '你是英语句法老师。用中文精炼分析句子。只返回一个 JSON 对象，不要 Markdown、解释或前后缀。必须使用模板：{"mainClause":"句子主干","logic":"逻辑与从句关系","phrases":"关键词组或搭配","hardPoints":"理解难点","naturalZh":"自然中文表达"}。所有字段都必须是字符串，内容不明确时返回空字符串。',
-      buildContext(input),
+      prompt.system,
+      prompt.user,
       analysisResponseSchema,
       signal,
       {
@@ -224,9 +223,10 @@ export class HttpAiClient implements AiClient {
   }
 
   async testConnection(signal: AbortSignal) {
+    const prompt = buildConnectionPrompt()
     await this.request(
-      '这是一个连接测试。只返回 JSON：{"ok":true}。',
-      '连接测试',
+      prompt.system,
+      prompt.user,
       z.object({ ok: z.literal(true) }),
       signal
     )

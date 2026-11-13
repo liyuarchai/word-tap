@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import writeExcelFile from 'write-excel-file/node'
@@ -579,6 +579,54 @@ test('@mock saved vocabulary can be opened from the reader', async ({ page }) =>
   await page.goto('/notebook?card=missing-card')
   await expect(page.getByText('词卡不存在或已删除').last()).toBeVisible()
   await expect(page).toHaveURL(/\/notebook$/)
+})
+
+test('@mock records real local dictionary first-response metrics', async ({ page }) => {
+  await reset(page, true)
+  await importDemo(page)
+  const localFirstResponseMs = await page.evaluate(async () => {
+    const button = Array.from(document.querySelectorAll('button')).find(
+      (candidate) => candidate.textContent?.trim() === 'resilient'
+    )
+    if (!button) throw new Error('Target word button not found')
+    return new Promise<number>((resolve, reject) => {
+      const startedAt = performance.now()
+      const timer = window.setTimeout(() => {
+        observer.disconnect()
+        reject(new Error('Local dictionary did not respond in time'))
+      }, 5000)
+      const observer = new MutationObserver(() => {
+        const panel = document.querySelector('[aria-label="词卡详情"]')
+        const text = panel?.textContent ?? ''
+        if (!text.includes('本地词典') || text.includes('正在查询本地词典')) return
+        window.clearTimeout(timer)
+        observer.disconnect()
+        resolve(performance.now() - startedAt)
+      })
+      observer.observe(document.body, {
+        childList: true,
+        characterData: true,
+        subtree: true
+      })
+      button.click()
+    })
+  })
+  expect(localFirstResponseMs).toBeGreaterThan(0)
+  expect(localFirstResponseMs).toBeLessThan(2000)
+  await writeFile(
+    resolve('test-results/local-dictionary-metrics.json'),
+    `${JSON.stringify(
+      {
+        caseId: 'poly-01',
+        localFirstResponseMs,
+        measuredAt: new Date().toISOString(),
+        method: 'browser-mutation-observer'
+      },
+      null,
+      2
+    )}\n`
+  )
+  await page.keyboard.press('Escape')
 })
 
 test('@api sends real request shape and falls back on errors', async ({ page }) => {

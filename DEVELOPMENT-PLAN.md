@@ -1,10 +1,10 @@
 # Word Tap MVP 开发与维护计划
 
 > 文档类型：生产开发计划、任务台账与验收记录
-> 计划版本：v6.1
-> 当前迭代：R4：设计系统化与作品集展示
-> 状态：R4 实现与自动化验收完成，待用户验收
-> 最后更新：2026-11-13
+> 计划版本：v7.3
+> 当前迭代：R5：AI 语境解释质量评估包（PAUSED）
+> 状态：PAUSED / 待独立盲评；真实 Provider 40/40 COMPLETED；项目作者非盲复核 39 PASS / 1 FAIL；独立盲评 NOT_RUN
+> 最后更新：2026-11-14
 > 目标目录：`E:\ai\word tap\app`
 > 需求基线：[PRD.md](./PRD.md)
 > 视觉基线：`yuanxing/PRD-原型设计.zip`
@@ -26,12 +26,12 @@
 
 | 项目 | 当前值 |
 | --- | --- |
-| 当前阶段 | R4：设计系统化与作品集展示（实现完成，待验收） |
-| 已完成任务 | MVP 阶段一至阶段三完成；R0、R1、R2、R3、R4 实现与自动化门禁完成 |
-| 当前阻塞 | 无 |
-| 下一任务 | 用户验收 `/design-system` 的视觉、状态矩阵和作品集截图效果 |
+| 当前阶段 | R5：AI 语境解释质量评估包，状态为 `PAUSED / 待独立盲评` |
+| 已完成任务 | MVP 阶段一至阶段三完成；R0、R1、R2、R3、R4 完成；R5 评估工具完成，真实 Provider 40/40 `COMPLETED`，项目作者非盲复核完成并观察到 39 PASS / 1 FAIL |
+| 当前阻塞 | 独立盲评 `NOT_RUN`；在独立评分者完成盲评前，R5 不得结项或标记全部完成 |
+| 下一任务 | 由未接触 Provider/模型信息的独立评分者完成 40 条盲评；当前只报告本次非盲观察，不计算总体准确率 |
 | 生产工程 | `app/` 已创建并可构建 |
-| Git 仓库 | 分支 `main`；R3 最新提交 `bcf37f9`；R4 修改尚未提交，等待验收 |
+| Git 仓库 | 本次 R5 暂停操作在 `main` 创建第 6 次 checkpoint，并创建 `r5-pending` 标签和下一阶段分支；具体提交以 Git 记录为唯一来源 |
 | 可用运行时 | Node.js 24.22.1、pnpm 11.25.0 |
 | npm | 当前 PATH 中不可用；统一使用 pnpm |
 | 原型状态 | 已有静态 HTML 交互原型，使用 localStorage 和模拟 AI，仅作为视觉与交互基准 |
@@ -53,7 +53,8 @@
 | R1：核心闭环可信度与可访问性修复 | 完成 | 2026-11-13 | 2026-11-13 | 46 个单元/组件测试、7 个 E2E、lint、typecheck、build 全部通过 |
 | R2：AI 词义解释状态机 | 完成 | 2026-11-13 | 2026-11-13 | 62 个单元/组件测试、12 个 E2E、lint、typecheck、build 全部通过 |
 | R3：多模态实验、电子书与阅读体验 | 完成 | 2026-11-13 | 2026-11-13 | 87 个单元/组件测试、18 个 E2E、真实 OCR 与 EPUB/MOBI/AZW3 实盘导入通过 |
-| R4：设计系统化与作品集展示 | 待验收 | 2026-11-13 | 2026-11-13 | Token 审计、93 个单元/组件测试、4 个视觉 E2E、axe 与 reduced-motion 通过 |
+| R4：设计系统化与作品集展示 | 完成 | 2026-11-13 | 2026-11-13 | Token 审计、93 个单元/组件测试、4 个视觉 E2E、axe 与 reduced-motion 通过 |
+| R5：AI 语境解释质量评估包 | PAUSED / 待独立盲评 | 2026-11-14 | — | 真实 Provider 40/40 `COMPLETED`、0 错误；项目作者非盲复核 39 PASS / 1 FAIL；独立盲评 `NOT_RUN` |
 
 ## 1.3 历史迭代：R0 计划基线与范围锁定
 
@@ -785,9 +786,9 @@ pnpm test:e2e
 - Project Gutenberg #1342 的 EPUB/MOBI/AZW3 样本仅用于本地实盘验收，放在 Git 忽略的 `app/live-fixtures/`；缺少样本时 `ebook-live` 会明确跳过。
 - 主 JavaScript chunk 为 815.07 kB，仍有 Vite 体积提示；OCR 与电子书解析器已动态拆包，体积优化留待后续。
 
-## 1.7 当前阶段：R4 设计系统化与作品集展示
+## 1.7 历史阶段：R4 设计系统化与作品集展示
 
-> 状态：待验收。实现和自动化验证已完成，等待用户确认作品集页面与视觉方向。
+> 状态：完成。Token、设计系统页、展示截图和质量门禁均已通过。
 
 ### R4 目标
 
@@ -1009,6 +1010,302 @@ R4 涉及新的 UI 页面，因此实施时还应运行现有视觉 E2E 作为�
 - 深色主题范围仍限于阅读体验；R4 不新增全应用深浅主题切换。
 - 视觉回归以现有页面和 1440/390px 作品集页面为主，不承诺覆盖所有浏览器渲染差异。
 
+## 1.8 已暂停阶段：R5 AI 语境解释质量评估包
+
+> 状态：`PAUSED / 待独立盲评`。
+>
+> - 真实 Provider 机器运行：40/40 `COMPLETED`，0 个机器调用错误。
+> - 项目作者非盲复核：40/40 已评分，观察到 39 PASS、1 FAIL。
+> - 独立盲评：`NOT_RUN`。
+> - 不得计算或报告总体准确率，不得把 `COMPLETED` 写成“40/40 通过”。
+> - R5-06 保持未完成；独立盲评完成前 R5 不得结项。
+
+### R5 目标
+
+为 Word Tap 的 AI 语境解释建立可重复、可审计、不会伪造结果的质量评估包，覆盖 40 组固定案例、人工评分规范、未运行结果模板和可配置 Provider 的评估脚本。
+
+本阶段只评估 AI 语境解释，不新增用户功能，不修改生词本、复习、导出、OCR 或电子书业务规则。
+
+### R5 不可违背的诚实原则
+
+- `results-template.csv` 是未运行模板，所有评分、耗时、Token、成本、Provider 和模型字段必须为空，或明确标记 `NOT_RUN`/`not_measured`。
+- 没有真实 Provider 调用时，不写“通过”“准确率”“平均分”或任何模型效果结论。
+- Provider 未返回 usage 时，Token 记录为 `not_reported`，不得用字符数估算冒充 Token。
+- 没有价格配置时，成本记录为 `not_computed`，不得写死模型价格。
+- 没有实际人工评分时，不把人工标准含义当作模型输出，也不自动填入分数。
+- 非盲复核必须明确标注为项目作者复核，不得冒充独立盲评。
+- 独立盲评 `NOT_RUN` 时，不把非盲观察作为 R5 的最终质量验收结论。
+- 评估结果必须带运行日期、Provider、模型、运行 ID、案例版本和评分人；没有这些证据的结果不得进入正式结论。
+- 原始作品、原创案例和授权来源必须可追溯；不使用版权影视字幕。
+
+### R5 评估文件
+
+#### `E:\ai\word tap\docs\ai-quality\eval-cases.json`
+
+固定 40 个案例，结构如下：
+
+```ts
+interface AiEvalCase {
+  id: string
+  version: 1
+  category:
+    | 'polysemy'
+    | 'collocation'
+    | 'register'
+    | 'slang-or-proper-noun'
+    | 'dictionary-miss'
+  target: {
+    surface: string
+    lemma: string
+  }
+  context: {
+    before?: string
+    sentence: string
+    after?: string
+  }
+  humanReference: {
+    meaningZh: string
+    acceptableParaphrasesZh: string[]
+    expectedContextClues: string[]
+  }
+  expectedBehavior: 'answer' | 'express-uncertainty'
+  reviewQuestionExpectation: string
+  riskNotes: string
+  provenance: {
+    type: 'original'
+    author: 'Word Tap R5'
+    copyrightMaterial: false
+  }
+}
+```
+
+案例数量固定：
+
+| 分类 | 数量 | 覆盖 |
+| --- | ---: | --- |
+| 多义词 | 10 | 同一词在不同句法/语境中的不同含义 |
+| 固定搭配或短语动词 | 10 | 组合义、不可逐词直译、搭配边界 |
+| 正式与非正式语境 | 10 | 正式和非正式各 5 组，检验语域与自然表达 |
+| 俚语或专有名词 | 5 | 当代俚语、虚构机构/作品名，检验不确定时是否收敛 |
+| 本地词典未收录词 | 5 | 新词、低频派生词或领域词，检验是否承认未知 |
+| 合计 | 40 | 每类数量必须由脚本校验 |
+
+- 当前句必须完整；前文和后文只在确实需要消歧时提供，每个最多 500 个 Unicode 字符。
+- `humanReference.meaningZh` 是人工标准含义，不是模型输出。
+- `acceptableParaphrasesZh` 允许语义等价表达。
+- `expectedContextClues` 用于判断解释是否引用了真正起作用的上下文。
+- `riskNotes` 记录最可能出现的误译、过度联想或编造风险。
+- 5 个 `dictionary-miss` 案例必须实际通过本地词典查询确认未收录；若被收录，在正式验收前替换案例。
+- 所有句子由 Word Tap R5 原创，不复制电影、电视剧、付费课程或版权书原文。
+
+#### `E:\ai\word tap\docs\ai-quality\rubric.md`
+
+评分总分 10 分：
+
+| 维度 | 分值 | 判定 |
+| --- | ---: | --- |
+| 当前语境含义正确 | 0–3 | 3=完整正确；2=基本正确但略泛；1=部分偏差；0=主要语义错误 |
+| 解释简洁 | 0–1 | 1=直接说明当前用法；0=冗长、堆砌词典义项或无关百科 |
+| 引用正确上下文线索 | 0–1 | 1=指出真正起作用的搭配/句法/语域；0=泛泛而谈或引用错误线索 |
+| 未编造不存在用法 | 0–2 | 2=无编造；1=轻微过度推断；0=实质编造词义、搭配或来源 |
+| 例句自然 | 0–1 | 1=自然且符合当前义；0=语法不自然、语境不匹配或复制原句充数 |
+| 不确定时正确处理 | 0–1 | 1=明确表达无法可靠判断且不硬猜；0=在应拒答时编造确定答案 |
+| 复习问题有价值 | 0–1 | 1=问题能检验该词当前语境义；0=空泛、答案泄露或无学习价值 |
+
+硬性判定：
+
+- 总分不低于 8/10 且“当前语境含义正确”不低于 2 分，才可标为 `PASS`。
+- “未编造不存在用法”为 0 分时，无论总分多少均标为 `FAIL`。
+- `expectedBehavior = express-uncertainty` 的案例，“不确定时正确处理”必须为 1 分。
+- 每个维度必须有简短证据，不能只写分数。
+- 人工评分应在隐藏 Provider/模型名称的条件下完成，减少品牌偏见。
+
+`rubric.md` 必须明确区分机器运行完成、项目作者非盲复核、独立盲评未执行和未运行模板，不能继续使用“人工评分尚未开始”来描述当前状态。
+
+#### `E:\ai\word tap\docs\ai-quality\results-template.csv`
+
+CSV 固定表头，并预置 40 个 `case_id`/`category` 行：
+
+```text
+case_id,category,case_version,run_id,run_status,provider,model,
+actual_context_meaning,actual_clue,actual_example,actual_example_zh,
+actual_review_question,context_meaning_score,concise_score,
+context_clue_score,no_hallucination_score,example_natural_score,
+uncertainty_handling_score,review_question_score,total_score,verdict,
+local_first_response_ms,ai_first_token_ms,ai_total_ms,input_tokens,
+output_tokens,estimated_cost_usd,cache_status,error_type,evaluator,
+reviewed_at,notes
+```
+
+- 模板行设置 `run_status=NOT_RUN`，其余 Provider、模型、输出、评分和指标字段为空。
+- 不把未运行的耗时、Token、成本写成 0；空值和 `not_measured`/`not_reported` 含义不同。
+- 正式结果使用独立运行文件，例如 `eval-results/<run-id>.jsonl` 和同名 CSV，不覆盖模板。
+- 任何汇总只针对已实际运行并完成人工评分的行，不把 40 个模板行计入样本数。
+
+### R5 指标定义
+
+| 指标 | 定义 |
+| --- | --- |
+| 首屏本地响应时间 | 从词卡打开到本地词典显示定义或“未收录”的时间；由浏览器性能测试记录 |
+| AI 首字时间 | 从 AI 请求开始到第一个非空流式内容分片的时间 |
+| AI 总耗时 | 从请求开始到完整响应结束、Schema 校验完成或错误落定的时间 |
+| 输入 Token | Provider `usage.prompt_tokens` 或兼容字段；缺失则为 `not_reported` |
+| 输出 Token | Provider `usage.completion_tokens` 或兼容字段；缺失则为 `not_reported` |
+| 单次成本 | 仅在 Token 和评估者提供的单价均存在时计算；否则为 `not_computed` |
+| 缓存状态 | 评估默认 `bypass`；如显式复用结果，标的 `hit`，不得把缓存结果当作新模型响应 |
+| 错误类型 | `none`、当前 `AiErrorCode`、`stream-parse`、`usage-missing`、`not-run` 等明确值 |
+
+成本公式：
+
+```text
+estimated_cost_usd =
+  input_tokens / 1_000_000 * input_usd_per_million_tokens
+  + output_tokens / 1_000_000 * output_usd_per_million_tokens
+```
+
+- 单价由环境变量提供，不把任何模型价格硬编码进仓库。
+- AI 首字只在真实流式响应时测量；Provider 不支持流式则记录 `not_measured`，不得用总耗时代替。
+- 本地首屏时间由浏览器性能测试单独采集；Node 脚本不能伪造首屏指标。
+
+### R5-01 固定评估集与规范
+
+1. 编写 40 个原创案例，执行分类数量和 ID 唯一性校验。
+2. 为每个案例补齐人工标准含义、允许改写、上下文线索、预期拒答和风险说明。
+3. 校验 5 个本地词典 miss 案例确实未命中当前 30,000 词词典。
+4. 编写 10 分评分规范、硬性失败条件、盲评流程和证据要求。
+5. 生成 40 行未运行 CSV 模板，不填任何编造值。
+
+### R5-02 可重复运行脚本
+
+环境具备 Node、TypeScript、`tsx` 和原生 `fetch`，因此实施时创建 `E:\ai\word tap\scripts\run-ai-eval.ts`，通过 `app/` 中的 `tsx` 依赖运行。
+
+环境变量：
+
+```text
+WORDTAP_EVAL_BASE_URL                 必填，OpenAI-compatible Base URL
+WORDTAP_EVAL_API_KEY                  必填，只用于进程内存
+WORDTAP_EVAL_MODEL                    必填
+WORDTAP_EVAL_TIMEOUT_MS               可选，默认 20000
+WORDTAP_EVAL_INPUT_USD_PER_MTOK       可选
+WORDTAP_EVAL_OUTPUT_USD_PER_MTOK      可选
+WORDTAP_EVAL_OUTPUT_DIR               可选，默认 eval-results
+WORDTAP_EVAL_CONCURRENCY              可选，默认 1
+WORDTAP_EVAL_CACHE                    可选，默认 bypass
+```
+
+- 缺少 Base URL、Key 或模型时在发起网络请求前退出，并给出安全配置说明。
+- 不读取、打印、序列化或写入 `WORDTAP_EVAL_API_KEY`。
+- 请求使用与 Word Tap 相同的词义解释 system prompt、当前词/当前句、有界前文和后文、温度 0.2。
+- 将词义解释 prompt 构造抽取为共享 `app/src/services/aiPrompts.ts`，产品与 Runner 引用同一实现，避免评估 prompt 与线上行为漂移。
+- 运行 ID 包含 UTC 时间与随机短 ID；每条结果写入 JSONL，最终生成机器指标摘要。
+- 默认逐案串行，减少限流对重复性的影响；并发的耗时不得直接横向比较。
+- 请求支持真实流式探测首字，并累积完整文本后再解析结构化 JSON；SSE 分片不是逐片 JSON。
+- 5xx 单次重试、429/401/403、超时、断网和非法输出沿用产品错误分类；重试次数写入结果。
+- 输出目录和实际运行结果默认不提交 Git。
+
+脚本不负责自动打人工质量分；它只生成可评分的原始输出和机器指标。
+
+### R5-03 实际运行与记录
+
+- 只有用户提供有效 Provider 配置并明确执行时，才产生 `COMPLETED` 结果。
+- 实际结果必须带运行时间、Provider Base URL 域名、模型、case version、脚本版本和运行 ID。
+- Base URL 记录只保留来源域名或经确认无凭据的地址，不在结果中保存 Query、Header 或 Key。
+- 人工评分完成后，才可统计 `PASS/FAIL` 数量和分类分布。
+- 不把 40 个案例的结果表述为模型总体“准确率”；只能说“本运行、本模型、本案例集观察到 X/40 通过”。
+- 若没有实际运行，`13.2 实际测试记录` 只记录脚本静态测试和模板校验，不增加模型质量结果。
+
+### R5 允许修改的文件
+
+- 计划：`DEVELOPMENT-PLAN.md`
+- 评估集：`docs/ai-quality/eval-cases.json`
+- 评分规范：`docs/ai-quality/rubric.md`
+- 未运行模板：`docs/ai-quality/results-template.csv`
+- 运行脚本：`scripts/run-ai-eval.ts`
+- 可选共享逻辑：`scripts/ai-eval-lib.ts`
+- 产品提示词共享：`app/src/services/aiPrompts.ts`、`app/src/services/ai.ts`
+- 应用测试：`app/src/services/ai.test.ts` 或新增评估脚本单元测试
+- 浏览器本地性能采集：`app/tests/e2e/app.spec.ts` 或专用 E2E 文件
+- 配置与说明：`app/package.json`、`.gitignore`、`app/README.md`
+- 正式运行结果：`eval-results/`，必须 Git 忽略
+
+不修改 AI 产品界面、数据库 Schema、复习规则、生词导出或 Provider 选择流程。
+
+### R5 测试计划
+
+#### 静态与单元测试
+
+- 案例总数必须为 40；分类数量必须为 10/10/10/5/5；ID 全局唯一。
+- 每题必须具有当前句、目标词、人工标准含义、风险说明和原创来源声明。
+- 每个 before/after 不超过 500 个 Unicode 字符。
+- 5 个 dictionary-miss 案例对当前本地词典查询均返回未收录。
+- 评分维度、硬性失败规则和 CSV 表头完全匹配本计划。
+- 模板只能包含 `NOT_RUN` 空白行，不能包含 Provider、模型、输出、Token、成本或分数。
+- Runner 缺少环境变量时不发请求、不写结果、不泄露 Key。
+- 产品与 Runner 使用同一 prompt builder；共享 prompt 重构前后请求体保持等价。
+- 使用 Mock fetch 覆盖成功、SSE 分片、非法分片、usage 缺失、401/403、429、5xx 单次重试、超时、断网、取消和非法 JSON。
+- cache-status、错误类型、Token 和成本缺失时分别写入准确的 `bypass`/`not_reported`/`not_computed`。
+
+#### 人工评分验证
+
+- 先使用 3 个校准案例让评分者熟悉 10 分 rubric，但校准分数不得混入正式结果。
+- 正式评分隐藏 Provider/模型名称。
+- 每题记录每个维度证据、总分、硬性 verdict、评分人和时间。
+- 未评分行保持 `NOT_RUN`，不能自动生成汇总。
+- 项目作者非盲复核只能记录为本次运行的非盲观察；独立盲评 `NOT_RUN` 时 R5-06 保持未完成。
+
+#### 浏览器指标验证
+
+- 通过 Playwright 测量一个代表性词卡从打开到本地定义可见的时间，写入真实 metrics 文件。
+- 指标文件缺失或读取失败时显示 `not_measured`，不阻断 AI 输出评估。
+
+### R5 测试门禁
+
+```powershell
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+- 若新增 Runner，还需运行其环境校验和 Mock Provider 测试。
+- 真实 AI Provider 运行不属于默认 CI；只有用户显式提供环境变量和执行命令后才允许联网评估。
+- 当前真实运行与项目作者非盲复核已经完成，但独立盲评尚未执行；R5 只能记为 `PAUSED / 待独立盲评`，不能结项。
+
+### R5 验收标准
+
+- 三个指定文件存在，40 个案例分类数量准确，全部为原创或明确授权素材。
+- Runner 从环境变量读取 Provider 配置，仓库、输出和测试快照中不存在 API Key。
+- 结果模板包含 40 个未运行案例行，没有任何编造的输出、耗时、Token、成本或评分。
+- 评分规范完整覆盖 7 个维度和硬性失败条件。
+- 脚本可生成真实 AI 输出与机器指标；缺失指标标记为 `not_measured`/`not_reported`/`not_computed`。
+- 文档明确区分已实际运行结果、未运行人工模板、假设和限制。
+- 文档明确区分真实机器运行、项目作者非盲复核和独立盲评。
+- 独立盲评 `NOT_RUN` 时不出现总体准确率或最终质量通过宣称。
+- `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过，真实结果写入 13.2。
+- 当前验收结论：真实 Provider 40/40 `COMPLETED`；项目作者非盲复核 39 PASS / 1 FAIL；独立盲评 `NOT_RUN`；R5 为 `PAUSED / 待独立盲评`。
+
+### R5 风险与处理
+
+| 风险 | 处理 |
+| --- | --- |
+| 把模板数据误当真实结果 | `run_status=NOT_RUN`，所有结果和指标为空；文档醒目标注未运行 |
+| 用字符数估算 Token | 只读取 Provider usage；缺失写 `not_reported` |
+| 写死模型价格导致过期 | 价格由环境变量提供；未提供写 `not_computed` |
+| 案例来自版权字幕 | 全部原创或明确授权，并在 provenance 中声明 |
+| 多义词标准过窄 | 使用 `acceptableParaphrasesZh` 和上下文线索判分 |
+| 低质量回答被平均分掩盖 | 语义错误或编造设置硬性 FAIL |
+| 流式分片解析错误 | 累积完整文本后做最终 Schema 校验，非法分片有单测 |
+| API Key 泄露 | 不打印 Header/环境值，不写运行元数据；结果目录 Git 忽略 |
+| 一次运行被夸大为模型准确率 | 只报告本模型、本案例集、本运行 ID 的观察结果 |
+
+### R5 已知限制
+
+- R5 评估的是单词语境解释，不覆盖整句翻译、精析、OCR 或电子书解析质量。
+- Provider 不返回 usage 或不支持流式时，相应指标不可得。
+- 40 个固定案例适合回归和作品集展示，不代表完整语言分布。
+- 人工评分存在主观性；盲评和证据要求只能降低偏差，不能消除偏差。
+- 当前非盲复核由项目作者完成，不能替代独立盲评，也不能用于计算总体准确率。
+
 ## 2. 产品目标与范围
 
 ### 2.1 MVP 目标
@@ -1026,6 +1323,7 @@ R4 涉及新的 UI 页面，因此实施时还应运行现有视觉 E2E 作为�
 - R3 实验能力：通过 feature flag 启用本地 OCR 书页导入；导入无 DRM 的 EPUB、MOBI、AZW3。
 - R3 阅读体验：字号、边距、行高、字体、首行缩进、亮度和五套阅读主题。
 - R4 设计系统：集中语义 Token，新增仅用于作品集的 `/design-system` 展示页，并保持现有页面视觉一致。
+- R5 质量评估：提供 40 组固定案例、人工评分规范和可配置 Provider 的可重复 AI 评估包。
 - 本地英汉词典优先，AI 异步补充语境释义和例句。
 - 单句机器翻译与按需精析。
 - 生词新增、查看、搜索、筛选、编辑和删除。
@@ -1044,6 +1342,7 @@ R4 涉及新的 UI 页面，因此实施时还应运行现有视觉 E2E 作为�
 - 多文件批量导入、词组查询、标签、图表、学习日历。
 - 远程 OCR、云书库、DRM 解密和多页批量拍书。
 - 通用组件库后台、营销落地页、霓虹 AI 视觉和与产品无关的组件演示。
+- 无实际运行依据的模型准确率、质量排名或效果宣称。
 
 ## 3. 已确认技术决策
 
@@ -1064,6 +1363,7 @@ R4 涉及新的 UI 页面，因此实施时还应运行现有视觉 E2E 作为�
 | 电子书 | `foliate-js@1.0.1` 动态加载，只提取无 DRM EPUB/MOBI/AZW3 的纯文本 |
 | 阅读偏好 | 扩展现有 `settings` 可选字段，不新增 Dexie 表，不升级数据库版本 |
 | R4 设计系统 | 使用 `tokens.css` 语义 Token 与现有 CSS Modules，不新增 UI 框架或 Token 依赖 |
+| R5 AI 评估 | Node/TypeScript 脚本 + OpenAI-compatible 接口；Provider、模型和价格由环境变量提供，不进入产品运行时 |
 | 应用启动数据 | 空数据，不迁移原型 localStorage 模拟数据 |
 | 部署形态 | 静态 HTTPS 站点，需要 SPA 路由回退 |
 
@@ -1100,6 +1400,14 @@ R4 涉及新的 UI 页面，因此实施时还应运行现有视觉 E2E 作为�
 ## 4. 目录结构约定
 
 ```text
+docs/
+  ai-quality/
+    eval-cases.json
+    rubric.md
+    results-template.csv
+scripts/
+  run-ai-eval.ts
+eval-results/              # Git ignored, actual runs only
 app/
   public/
     icons/
@@ -1630,6 +1938,26 @@ pnpm build
 
 **退出标准：** 语义 Token 集中管理，`/design-system` 可独立作为作品集素材，原页面视觉与业务闭环不回归，四条质量命令和视觉 E2E 均通过。
 
+### R5 后续迭代：AI 语境解释质量评估包
+
+- [x] R5-01 编写并校验 40 组原创评估案例，分类数量为 10/10/10/5/5
+- [x] R5-02 编写 7 维、10 分制人工评分规范和硬性失败条件
+- [x] R5-03 生成 40 行 `NOT_RUN` 结果模板，禁止预填任何效果或指标
+- [x] R5-04 创建环境变量驱动的 `scripts/run-ai-eval.ts` 和共享校验逻辑
+- [x] R5-05 增加浏览器本地首屏指标、流式首字、usage/成本缺失和 Key 安全测试
+- [ ] R5-06 独立盲评待执行；真实 Provider 40/40 `COMPLETED`，项目作者非盲复核 39 PASS / 1 FAIL，独立盲评 `NOT_RUN`，R5 为 `PAUSED`
+
+**R5 测试门禁：**
+
+```powershell
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+**退出标准：** 三个指定文件完整、40 个案例计数和来源校验通过、Runner 不泄露密钥且缺失指标不伪造；真实运行与项目作者非盲复核已记录，独立盲评完成后才能关闭 R5-06。当前不结项、不计算总体准确率。
+
 ## 13. 测试与验收矩阵
 
 | 测试域 | 必测内容 | 证据 |
@@ -1650,6 +1978,9 @@ pnpm build
 | 性能 | 2 MB 导入目标 2 秒；本地查词目标 200 ms | 基准记录 |
 | R4 Token | 语义色、字体、4/8 间距、圆角、边框、阴影、动效、交互状态和硬编码扫描 | 单元 + 静态检查 |
 | R4 展示页 | 八个内容区块、来源差异、状态矩阵、桌面/移动示例和截图素材 | 组件 + E2E + 人工截图 |
+| R5 案例集 | 40 题、10/10/10/5/5 分类、原创来源、上下文字符上限、词典 miss 校验 | JSON 校验 + 单元测试 |
+| R5 评分与模板 | 7 维 rubric、硬性 FAIL、40 行 NOT_RUN、空指标和实际运行隔离 | Schema + CSV 测试 |
+| R5 Runner | 环境变量、流式首字、usage/cost 缺失、错误映射、缓存状态和 Key 安全 | 单元 + Mock Provider |
 
 ### 13.1 PRD 验收映射
 
@@ -1690,6 +2021,19 @@ pnpm build
 | R4-AC-06 桌面与移动示例无横向滚动且触控尺寸合格 | R4-04、R4-06 | 自动化通过 |
 | R4-AC-07 原有页面视觉和业务闭环不回归 | R4-03、R4-06 | 视觉 E2E 通过 |
 
+#### R5 扩展验收映射
+
+| 验收项 | 对应任务 | 当前状态 |
+| --- | --- | --- |
+| R5-AC-01 40 组案例数量与分类准确、全部原创或授权 | R5-01 | 自动化通过 |
+| R5-AC-02 每题有人工标准含义、上下文与风险说明 | R5-01、R5-02 | 自动化通过 |
+| R5-AC-03 rubric 覆盖 7 个维度和硬性失败规则 | R5-02 | 自动化通过 |
+| R5-AC-04 结果模板为 NOT_RUN 且无虚构指标 | R5-03 | 自动化通过 |
+| R5-AC-05 Runner 从环境变量读取 Provider 且不泄露 Key | R5-04、R5-05 | Mock 测试通过；真实 Provider 运行 40/40 `COMPLETED` |
+| R5-AC-06 首字、耗时、Token、成本和缓存状态缺失时准确标注 | R5-04、R5-05 | Mock 测试通过；真实运行指标已记录，成本 `not_computed` |
+| R5-AC-07 文档严格区分机器结果、非盲复核、盲评、未运行模板和假设限制 | R5-02、R5-03、R5-06 | 已完成文档状态回写 |
+| R5-AC-08 独立盲评完成且不泄露 Provider/模型信息 | R5-06 | `NOT_RUN`，待独立评分者执行 |
+
 ### 13.2 实际测试记录
 
 | 日期 | 阶段 | 命令 | 结果 | 耗时 | 失败原因/修复 | 证据 |
@@ -1722,6 +2066,21 @@ pnpm build
 | 2026-11-13 | R4 | `pnpm test` | 93/93 通过 | 7.6s | Token 对比度、硬编码扫描、展示页状态、键盘和既有组件回归 | 本文件 |
 | 2026-11-13 | R4 | `pnpm build` | 通过，PWA 26 项预缓存 | 6.6s | 设计系统页懒加载为 12.04 kB chunk；主包 815.21 kB；体积提示不阻断 | `app/dist` |
 | 2026-11-13 | R4 | `pnpm test:e2e --project=visual` | 4/4 通过 | 19.7s | 1440/390 截图、axe、reduced-motion、触控尺寸和既有页面零位移 | `app/test-results/design-system-*.png` |
+| 2026-11-14 | R5 | `tsx ../scripts/run-ai-eval.ts --validate-only` | 通过 | — | 40 个案例，10/10/10/5/5 分类和 5 个词典 miss 校验通过 | `docs/ai-quality/eval-cases.json` |
+| 2026-11-14 | R5 | `tsx ../scripts/run-ai-eval.ts --write-template` | 通过 | — | 生成 40 行 `NOT_RUN` 空白模板，无 Provider、模型、分数或指标 | `docs/ai-quality/results-template.csv` |
+| 2026-11-14 | R5 | `pnpm lint` | 通过 | 9.2s | ESLint、Token 审计和产品代码回归通过 | 本文件 |
+| 2026-11-14 | R5 | `pnpm typecheck` | 通过 | 7.1s | Runner、案例类型、Prompt 共享和测试类型通过 | 本文件 |
+| 2026-11-14 | R5 | `pnpm test` | 103/103 通过 | 8.4s | 案例计数/来源、模板空值、Prompt parity、SSE、错误、成本/usage 缺失、Key 不外泄 | 本文件 |
+| 2026-11-14 | R5 | `pnpm build` | 通过，PWA 26 项预缓存 | 6.6s | Runner 文档不进入产品包；主包 815.55 kB，体积提示不阻断 | `app/dist` |
+| 2026-11-14 | R5 checkpoint | `pnpm lint` | 通过 | 28.4s | ESLint 与设计 Token 审计通过 | 本文件 |
+| 2026-11-14 | R5 checkpoint | `pnpm typecheck` | 通过 | 11.1s | TypeScript 构建检查通过 | 本文件 |
+| 2026-11-14 | R5 checkpoint | `pnpm test` | 103/103 通过 | 27.4s | 16 个测试文件全部通过 | 本文件 |
+| 2026-11-14 | R5 checkpoint | `pnpm build` | 通过，PWA 26 项预缓存 | 22.9s | 主包 815.55 kB，体积提示不阻断 | `app/dist` |
+| 2026-11-14 | R5 | `pnpm test:e2e --project=mock` | 5/5 通过 | 17.7s | 浏览器测得代表词卡本地首响 987.8ms；AI 走 Mock，无真实模型质量结果 | `app/test-results/local-dictionary-metrics.json` |
+| 2026-11-14 | R5 | 真实 DeepSeek 评估 `20261113T195921Z-f22545` | 40/40 `COMPLETED`，0 失败 | 80.6s | deepseek-flash；输入 5,561 tokens、输出 10,369 tokens；API 成本未配置单价，标记 not_computed | `eval-results/20261113T195921Z-f22545.*` |
+| 2026-11-14 | R5 | 真实运行耗时统计 | AI 首字均值 1,552.51ms；总耗时均值 2,014.99ms | 80.6s | 总耗时范围 1,217.65–2,903.10ms；本地首屏指标仍为 not_measured | `eval-results/20261113T195921Z-f22545.csv` |
+| 2026-11-14 | R5 | 项目作者非盲 7 维复核 | 40/40 已评分；39 PASS / 1 FAIL | — | 非盲复核，不是独立盲评；不得计算总体准确率 | `wordtap-ai-review-20261113T195921Z-f22545.audited.xlsx`（本地，Git 忽略） |
+| 2026-11-14 | R5 | 独立盲评 | `NOT_RUN` | — | 隐藏 Provider/模型信息的独立评分尚未执行，R5-06 保持未完成 | 待执行 |
 | 2026-11-04 | 阶段一 | `pnpm lint` | 通过，1 个非阻断 Fast Refresh 警告 | 2.6s | — | 本文件 |
 | 2026-11-04 | 阶段一 | `pnpm typecheck` | 通过 | 2.8s | 初次测试泛型错误，已修复 | 本文件 |
 | 2026-11-04 | 阶段一 | `pnpm test` | 22/22 通过 | 1.1s | 排除 E2E 目录避免 Vitest 误收集 | 本文件 |
@@ -1784,6 +2143,7 @@ pnpm test:e2e
 - 正式演示素材为原创或已授权字幕。
 - R3 发布前额外验证：OCR flag 开启/关闭、原图不上传、真实本地 OCR 冒烟、一个无 DRM EPUB 实盘解析、五主题×三亮度对比度。
 - R4 发布前额外验证：`/design-system` 桌面/移动截图、全部状态非颜色表达、Token 硬编码扫描、axe、reduced-motion 和既有页面视觉回归。
+- R5 发布前额外验证：案例计数与来源、40 行未运行模板、环境变量预检、Key 不落盘、Mock Provider 全错误路径；没有真实运行和人工评分时不得发布模型质量结论。
 
 ## 15. 三分钟演示验收
 
@@ -1843,6 +2203,15 @@ R4 作品集素材使用独立截图流程：
 | 2026-11-13 | R4 只整理现有视觉，不重做产品风格 | 现有页面已经形成纸感、编辑性和阅读优先方向 | Token 化以视觉等价为约束，通过现有视觉回归 |
 | 2026-11-13 | `/design-system` 使用路由级懒加载 | 作品集页面不应增加普通用户首屏负担 | 页面独立为约 12 kB chunk，主流程不加载该页面 |
 | 2026-11-13 | Token 审计纳入 `pnpm lint` | 颜色、间距、圆角、字体和动效约束需要在日常门禁自动执行 | 新增 `design:tokens` Node 审计脚本，无新增依赖 |
+| 2026-11-14 | R5 评估集与产品运行时分离 | 质量评估不应改变普通用户界面和 AI 状态机 | 评估文件位于 `docs/ai-quality`，Runner 在根 `scripts/` |
+| 2026-11-14 | R5 结果模板只含 NOT_RUN 行 | 模板最容易被误认为已运行结果 | 结果、评分、耗时、Token、成本和 Provider 字段留空 |
+| 2026-11-14 | R5 不估算缺失的 Token 和成本 | 字符估算会制造虚假精确度 | usage 缺失写 `not_reported`，价格缺失写 `not_computed` |
+| 2026-11-14 | R5 采用 7 维 10 分制并有硬性失败 | 平均值会掩盖严重语境错误或编造 | 语义错误/编造可单项判 FAIL，应拒答案例必须正确收束 |
+| 2026-11-14 | R5 流式只用于测量首字 | 产品当前是 validated-progressive，不能把评估流式行为误写成产品流式 | 累积完整内容后再做最终结构化校验 |
+| 2026-11-14 | R5 复用产品 Prompt builder，并为评估追加 reviewQuestion | 保持语境解释请求一致，同时让复习问题维度可评分 | 产品默认不生成 reviewQuestion；评估运行显式启用 |
+| 2026-11-14 | R5 默认 `WORDTAP_EVAL_CACHE=bypass` | 质量评估应测量新模型响应，不由缓存掩盖失败 | 结果固定记录 cache_status=bypass；其他模式当前拒绝 |
+| 2026-11-14 | 结果模板由案例集离线生成而不是每次构建重写 | 防止构建过程覆盖人工维护或错误写入模板 | `pnpm ai:eval:template` 显式生成，构建不修改该文件 |
+| 2026-11-14 | R5 在项目作者非盲复核后暂停，等待独立盲评 | 非盲复核可能受 Provider/模型品牌信息影响，不能替代隐藏来源的独立评分 | R5 状态固定为 `PAUSED / 待独立盲评`；R5-06 保持未完成 |
 
 ## 17. 风险与阻塞记录
 
@@ -1865,11 +2234,20 @@ R4 作品集素材使用独立截图流程：
 | R4 展示页被误当产品页面 | 加入主导航或承载真实业务操作 | 保持直达路由、不加入 rail/tabbar，使用静态样例 | 计划已约束 |
 | R4 状态仅靠颜色 | AI、缓存、成功和错误使用不同色但没有文字语义 | 每个状态同时提供标签、图标或线型，axe 与人工截图复核 | 已验证：状态标签 + axe 通过 |
 | R4 Token 重复维护 | CSS、TypeScript 主题和展示页各存一份颜色 | CSS Token 为唯一来源，`readingThemes.ts` 移除原始色值 | 已验证：颜色审计通过 |
+| R5 模板被误当实测 | 未运行模板中的空值或 `NOT_RUN` 被汇总进结果 | 模板与运行文件分离，汇总只读取真实 `COMPLETED` 行 | 已验证：模板 40 行全部 NOT_RUN |
+| R5 缺失 Token/成本被伪造 | Provider 未返回 usage 或未提供价格 | 精确标记 `not_reported`/`not_computed`，不估算 | 已验证：Mock 缺失场景通过 |
+| R5 Key 泄露 | 脚本打印环境、请求 Header 或错误体 | 只读进程内存，输出脱敏地址，Key 不进入日志/结果 | 已验证：输出断言不含 Key |
+| R5 案例版权或重复 | 使用字幕、书摘或近重复句 | 全部原创/授权，校验 ID、句子哈希和来源声明 | 已验证：40 题原创声明与唯一性通过 |
+| R5 将非盲复核冒充独立盲评 | 项目作者已看到 Provider/模型并完成 39 PASS / 1 FAIL 的非盲复核 | 文档分别标注机器运行、非盲复核和独立盲评；不计算总体准确率 | 已约束：独立盲评 NOT_RUN，R5 PAUSED |
 
 ## 18. 变更记录
 
 | 日期 | 版本 | 变更 |
 | --- | --- | --- |
+| 2026-11-14 | v7.3 | 建立 R5 第 6 次 checkpoint：真实 Provider 40/40 `COMPLETED`、项目作者非盲复核 39 PASS / 1 FAIL、独立盲评 `NOT_RUN`；同步 rubric 与验收映射，R5 暂停等待独立盲评，R5-06 保持未完成 |
+| 2026-11-14 | v7.2 | 记录 DeepSeek `deepseek-flash` 真实 40 案例运行：40/40 完成、0 错误、首字/总耗时和 Token 汇总；人工评分仍未运行 |
+| 2026-11-14 | v7.1 | R5 评估包交付：40 组原创案例、7 维 rubric、40 行 NOT_RUN 模板、环境变量 Runner、共享 Prompt、Mock SSE/错误/Key 安全测试通过；尚无模型质量结论 |
+| 2026-11-14 | v7.0 | 新增 R5 AI 质量评估计划：40 组分类案例、7 维人工 rubric、NOT_RUN CSV 模板、环境变量 Runner、真实指标与未运行结果隔离 |
 | 2026-11-13 | v6.1 | R4 实现完成：语义 Token 集中、阅读主题 CSS 化、`/design-system` 作品集页、Token 审计、axe/reduced-motion/视觉回归全部通过 |
 | 2026-11-13 | v6.0 | 新增 R4 设计系统计划：语义 Token 单一来源、`/design-system` 作品集页面、阅读/AI 状态矩阵、无障碍与视觉回归门禁 |
 | 2026-11-13 | v5.1 | R3 实现完成：本地 OCR、EPUB/MOBI/AZW3、阅读偏好与五套主题；87 个单元/组件测试、18 个 E2E、真实 OCR 和三种电子书实盘通过 |

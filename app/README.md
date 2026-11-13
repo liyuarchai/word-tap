@@ -106,6 +106,25 @@ pnpm design:tokens
 
 完整使用规范见 [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md)。`pnpm lint` 会同时运行 Token 审计。
 
+## AI 质量评估
+
+固定的 40 组语境解释评估集、人工评分规范和未运行 CSV 模板位于项目根目录 `docs/ai-quality/`。
+
+```powershell
+pnpm ai:eval:validate
+pnpm ai:eval:template
+```
+
+设置 `WORDTAP_EVAL_BASE_URL`、`WORDTAP_EVAL_API_KEY` 和 `WORDTAP_EVAL_MODEL` 后可显式执行真实 Provider 评估：
+
+```powershell
+pnpm ai:eval
+```
+
+可选配置包括 `WORDTAP_EVAL_TIMEOUT_MS`、`WORDTAP_EVAL_INPUT_USD_PER_MTOK`、`WORDTAP_EVAL_OUTPUT_USD_PER_MTOK`、`WORDTAP_EVAL_OUTPUT_DIR`、`WORDTAP_EVAL_CONCURRENCY`、`WORDTAP_EVAL_CACHE=bypass` 和 `WORDTAP_EVAL_LOCAL_METRICS_FILE`。
+
+Runner 不把 Key 写入日志或结果，也不在 Provider 未返回 usage 时估算 Token 或成本。实际结果保存在 Git 忽略的根目录 `eval-results/`。`results-template.csv` 始终是 `NOT_RUN` 模板，不代表模型质量结论。未实际运行前，不得用“准确率”或“模型通过率”描述该评估集。
+
 ## OCR 与电子书
 
 - `pnpm dev` 和 `pnpm build` 会先运行 `pnpm ocr:sync`，把 Tesseract Worker、WASM Core 和英文模型同步到同源 `public/ocr/`；生成文件不提交到 Git。

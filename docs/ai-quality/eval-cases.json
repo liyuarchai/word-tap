@@ -1,0 +1,800 @@
+{
+  "schema": "wordtap.ai-eval.v1",
+  "caseSetVersion": "1.0.0",
+  "createdAt": "2026-11-14",
+  "language": "en",
+  "cases": [
+    {
+      "id": "poly-01",
+      "version": 1,
+      "category": "polysemy",
+      "register": "neutral",
+      "target": { "surface": "bank", "lemma": "bank" },
+      "context": {
+        "sentence": "She sat on the river bank and watched the current carry leaves downstream.",
+        "after": "The water was unusually high after three days of rain."
+      },
+      "humanReference": {
+        "meaningZh": "河岸",
+        "acceptableParaphrasesZh": ["河边", "河岸"],
+        "expectedContextClues": ["river", "current", "water"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分河岸与金融机构。",
+      "riskNotes": "可能误选“银行”。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "poly-02",
+      "version": 1,
+      "category": "polysemy",
+      "register": "neutral",
+      "target": { "surface": "spring", "lemma": "spring" },
+      "context": {
+        "sentence": "The hikers filled their bottles at a cold spring near the trail.",
+        "before": "They had been walking since sunrise without finding a shop."
+      },
+      "humanReference": {
+        "meaningZh": "泉；泉水",
+        "acceptableParaphrasesZh": ["泉水", "水源", "泉眼"],
+        "expectedContextClues": ["filled their bottles", "cold", "water source implied by trail"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能根据取水动作判断为泉水。",
+      "riskNotes": "可能误解为春天或弹簧。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "poly-03",
+      "version": 1,
+      "category": "polysemy",
+      "register": "neutral",
+      "target": { "surface": "charge", "lemma": "charge" },
+      "context": {
+        "sentence": "The hotel added a charge for parking without telling us at check-in.",
+        "after": "We only noticed it on the final bill."
+      },
+      "humanReference": {
+        "meaningZh": "费用；收费项目",
+        "acceptableParaphrasesZh": ["附加费用", "收费", "费用"],
+        "expectedContextClues": ["hotel", "parking", "final bill"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能解释 charge 在此为账单费用。",
+      "riskNotes": "可能误作指控或充电。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "poly-04",
+      "version": 1,
+      "category": "polysemy",
+      "register": "neutral",
+      "target": { "surface": "runs", "lemma": "run" },
+      "context": {
+        "sentence": "She runs a small design studio with three other people.",
+        "after": "They specialize in museum exhibitions."
+      },
+      "humanReference": {
+        "meaningZh": "经营；管理",
+        "acceptableParaphrasesZh": ["经营", "管理", "负责运营"],
+        "expectedContextClues": ["small design studio", "with three other people", "specialize"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能识别 run 的商业管理含义。",
+      "riskNotes": "可能误作跑步。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "poly-05",
+      "version": 1,
+      "category": "polysemy",
+      "register": "neutral",
+      "target": { "surface": "light", "lemma": "light" },
+      "context": {
+        "sentence": "The suitcase was light enough to carry up the stairs with one hand."
+      },
+      "humanReference": {
+        "meaningZh": "轻的；重量小的",
+        "acceptableParaphrasesZh": ["轻便", "不重", "重量轻"],
+        "expectedContextClues": ["suitcase", "carry up the stairs with one hand"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分重量轻与光线。",
+      "riskNotes": "可能误作明亮或浅色。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "poly-06",
+      "version": 1,
+      "category": "polysemy",
+      "register": "formal",
+      "target": { "surface": "issue", "lemma": "issue" },
+      "context": {
+        "sentence": "The city will issue new transit cards to residents next month.",
+        "after": "The cards replace the old paper tickets."
+      },
+      "humanReference": {
+        "meaningZh": "发放；签发",
+        "acceptableParaphrasesZh": ["发放", "签发", "配发"],
+        "expectedContextClues": ["new transit cards", "to residents"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能识别 issue 的动词发放义。",
+      "riskNotes": "可能误作问题或期号。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "poly-07",
+      "version": 1,
+      "category": "polysemy",
+      "register": "formal",
+      "target": { "surface": "fine", "lemma": "fine" },
+      "context": {
+        "sentence": "The company had to pay a fine after failing three safety inspections.",
+        "before": "Regulators reviewed the factory records for several weeks."
+      },
+      "humanReference": {
+        "meaningZh": "罚款",
+        "acceptableParaphrasesZh": ["罚金", "处罚款"],
+        "expectedContextClues": ["had to pay", "failing three safety inspections", "regulators"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能根据监管语境识别罚款。",
+      "riskNotes": "可能误作“很好”。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "poly-08",
+      "version": 1,
+      "category": "polysemy",
+      "register": "neutral",
+      "target": { "surface": "match", "lemma": "match" },
+      "context": {
+        "sentence": "The curtains were a perfect match for the pale blue rug.",
+        "after": "The designer chose them from the same fabric collection."
+      },
+      "humanReference": {
+        "meaningZh": "相配之物；搭配得宜",
+        "acceptableParaphrasesZh": ["很相配", "匹配", "颜色和风格协调"],
+        "expectedContextClues": ["curtains", "pale blue rug", "same fabric collection"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分搭配相配与比赛。",
+      "riskNotes": "可能误作体育比赛或火柴。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "poly-09",
+      "version": 1,
+      "category": "polysemy",
+      "register": "informal",
+      "target": { "surface": "order", "lemma": "order" },
+      "context": {
+        "sentence": "The cafe lost our order, so we only got coffee forty minutes later.",
+        "before": "We had asked for two sandwiches and a salad."
+      },
+      "humanReference": {
+        "meaningZh": "点单；订单",
+        "acceptableParaphrasesZh": ["点的餐", "订单", "点单内容"],
+        "expectedContextClues": ["cafe", "two sandwiches and a salad", "got coffee later"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能识别餐饮语境中的点单。",
+      "riskNotes": "可能误作命令或顺序。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "poly-10",
+      "version": 1,
+      "category": "polysemy",
+      "register": "neutral",
+      "target": { "surface": "right", "lemma": "right" },
+      "context": {
+        "sentence": "Turn right after the bridge, then follow the road along the lake.",
+        "before": "The station is hidden behind the old clock tower."
+      },
+      "humanReference": {
+        "meaningZh": "向右；右边方向",
+        "acceptableParaphrasesZh": ["右转", "朝右边"],
+        "expectedContextClues": ["turn", "after the bridge", "follow the road"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能根据路线指令判断方向。",
+      "riskNotes": "可能误作正确或权利。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "col-01",
+      "version": 1,
+      "category": "collocation",
+      "register": "formal",
+      "target": { "surface": "take into account", "lemma": "take into account" },
+      "context": {
+        "sentence": "The committee must take the latest survey into account before approving the plan.",
+        "before": "Residents reported several unexpected effects on traffic."
+      },
+      "humanReference": {
+        "meaningZh": "把……考虑在内",
+        "acceptableParaphrasesZh": ["考虑", "纳入考量", "把……作为因素"],
+        "expectedContextClues": ["committee", "latest survey", "before approving"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分 take part、take over 与本搭配。",
+      "riskNotes": "可能逐词误译为“带进账户”。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "col-02",
+      "version": 1,
+      "category": "collocation",
+      "register": "neutral",
+      "target": { "surface": "came across", "lemma": "come across" },
+      "context": {
+        "sentence": "I came across an old photograph while cleaning the attic."
+      },
+      "humanReference": {
+        "meaningZh": "偶然发现",
+        "acceptableParaphrasesZh": ["偶然看到", "碰巧找到"],
+        "expectedContextClues": ["old photograph", "while cleaning the attic"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能解释偶然发现而非穿过。",
+      "riskNotes": "可能误作“穿过”或“给人印象”。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "col-03",
+      "version": 1,
+      "category": "collocation",
+      "register": "informal",
+      "target": { "surface": "put off", "lemma": "put off" },
+      "context": {
+        "sentence": "We put off the picnic because the forecast promised thunderstorms.",
+        "after": "Saturday morning is clear for now."
+      },
+      "humanReference": {
+        "meaningZh": "推迟",
+        "acceptableParaphrasesZh": ["延期", "延后"],
+        "expectedContextClues": ["picnic", "thunderstorms", "Saturday morning is clear"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分推迟与使反感。",
+      "riskNotes": "可能误作脱衣或使人失去兴趣。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "col-04",
+      "version": 1,
+      "category": "collocation",
+      "register": "neutral",
+      "target": { "surface": "broke down", "lemma": "break down" },
+      "context": {
+        "sentence": "Their car broke down halfway to the airport, so they called a taxi.",
+        "before": "They had left home with plenty of time."
+      },
+      "humanReference": {
+        "meaningZh": "发生故障；抛锚",
+        "acceptableParaphrasesZh": ["车坏了", "抛锚", "停止运转"],
+        "expectedContextClues": ["car", "halfway to the airport", "called a taxi"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能识别机械故障义。",
+      "riskNotes": "可能误作情绪崩溃或分解数据。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "col-05",
+      "version": 1,
+      "category": "collocation",
+      "register": "informal",
+      "target": { "surface": "get through", "lemma": "get through" },
+      "context": {
+        "sentence": "It took us nearly an hour to get through all the customs checks.",
+        "after": "Our connecting flight was already boarding."
+      },
+      "humanReference": {
+        "meaningZh": "完成；通过",
+        "acceptableParaphrasesZh": ["通过", "办完", "顺利走完"],
+        "expectedContextClues": ["customs checks", "an hour", "connecting flight"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能解释完成检查流程。",
+      "riskNotes": "可能误作接通电话或度过困难。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "col-06",
+      "version": 1,
+      "category": "collocation",
+      "register": "neutral",
+      "target": { "surface": "look forward to", "lemma": "look forward to" },
+      "context": {
+        "sentence": "I look forward to hearing how the workshop goes next week.",
+        "before": "The team has spent months preparing the materials."
+      },
+      "humanReference": {
+        "meaningZh": "期待",
+        "acceptableParaphrasesZh": ["盼望", "期待收到"],
+        "expectedContextClues": ["hearing", "workshop next week", "preparing for months"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能说明 to 后接动名词并表达期待。",
+      "riskNotes": "可能误作向前看。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "col-07",
+      "version": 1,
+      "category": "collocation",
+      "register": "formal",
+      "target": { "surface": "carry out", "lemma": "carry out" },
+      "context": {
+        "sentence": "The lab will carry out a second round of tests before publishing the findings.",
+        "after": "The first round produced two unexpected results."
+      },
+      "humanReference": {
+        "meaningZh": "执行；实施",
+        "acceptableParaphrasesZh": ["进行", "开展", "实施"],
+        "expectedContextClues": ["lab", "second round of tests", "publishing findings"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分实施研究与搬出去。",
+      "riskNotes": "可能误作把东西搬出去。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "col-08",
+      "version": 1,
+      "category": "collocation",
+      "register": "informal",
+      "target": { "surface": "bring up", "lemma": "bring up" },
+      "context": {
+        "sentence": "She brought up the budget problem during the final five minutes of the meeting.",
+        "after": "Nobody had prepared an answer."
+      },
+      "humanReference": {
+        "meaningZh": "提出；谈及",
+        "acceptableParaphrasesZh": ["提出", "提到", "把……拿出来讨论"],
+        "expectedContextClues": ["during the meeting", "budget problem", "prepared an answer"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分提出话题与抚养孩子。",
+      "riskNotes": "可能误作抚养或呕吐。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "col-09",
+      "version": 1,
+      "category": "collocation",
+      "register": "formal",
+      "target": { "surface": "turned down", "lemma": "turn down" },
+      "context": {
+        "sentence": "The publisher turned down the manuscript because the opening felt too familiar.",
+        "before": "The author had submitted it to six houses."
+      },
+      "humanReference": {
+        "meaningZh": "拒绝",
+        "acceptableParaphrasesZh": ["拒绝了稿件", "未接受", "驳回了投稿"],
+        "expectedContextClues": ["publisher", "manuscript", "submitted it to six houses"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分拒绝与调低音量。",
+      "riskNotes": "可能误作调低音量或向下翻。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "col-10",
+      "version": 1,
+      "category": "collocation",
+      "register": "neutral",
+      "target": { "surface": "worked out", "lemma": "work out" },
+      "context": {
+        "sentence": "After trying three routes, we finally worked out a way around the flooded road.",
+        "after": "The detour added only ten minutes to the journey."
+      },
+      "humanReference": {
+        "meaningZh": "想出；解决",
+        "acceptableParaphrasesZh": ["想出了办法", "解决", "弄明白"],
+        "expectedContextClues": ["trying three routes", "way around", "detour"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分想出解决办法与锻炼身体。",
+      "riskNotes": "可能误作健身或计算结果。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "reg-01",
+      "version": 1,
+      "category": "register",
+      "register": "formal",
+      "target": { "surface": "commence", "lemma": "commence" },
+      "context": {
+        "sentence": "The hearing will commence at nine o'clock in the main chamber."
+      },
+      "humanReference": {
+        "meaningZh": "开始；正式启动",
+        "acceptableParaphrasesZh": ["开始", "正式召开"],
+        "expectedContextClues": ["hearing", "main chamber", "formal schedule"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能比较 commence 与 begin 的正式语域。",
+      "riskNotes": "可能过度解释为发表声明。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "reg-02",
+      "version": 1,
+      "category": "register",
+      "register": "formal",
+      "target": { "surface": "request", "lemma": "request" },
+      "context": {
+        "sentence": "Guests are requested to return their visitor badges before leaving the building."
+      },
+      "humanReference": {
+        "meaningZh": "要求；请求",
+        "acceptableParaphrasesZh": ["请访客……", "要求", "正式请求"],
+        "expectedContextClues": ["Guests", "visitor badges", "leaving the building"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能解释正式语域中的被动请求。",
+      "riskNotes": "可能误作单纯提问。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "reg-03",
+      "version": 1,
+      "category": "register",
+      "register": "formal",
+      "target": { "surface": "assist", "lemma": "assist" },
+      "context": {
+        "sentence": "Staff will assist passengers who need help transferring between terminals.",
+        "after": "The service is available until midnight."
+      },
+      "humanReference": {
+        "meaningZh": "协助；帮助",
+        "acceptableParaphrasesZh": ["帮助", "协助", "提供指引"],
+        "expectedContextClues": ["Staff", "passengers", "transferring between terminals"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能识别 assist 的正式帮助含义。",
+      "riskNotes": "可能编造医疗或比赛助攻语境。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "reg-04",
+      "version": 1,
+      "category": "register",
+      "register": "formal",
+      "target": { "surface": "purchase", "lemma": "purchase" },
+      "context": {
+        "sentence": "Tickets purchased online must be collected at least twenty minutes before departure."
+      },
+      "humanReference": {
+        "meaningZh": "购买",
+        "acceptableParaphrasesZh": ["买到", "购买"],
+        "expectedContextClues": ["Tickets", "online", "collected before departure"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能解释正式语境中的购买。",
+      "riskNotes": "可能误作抓住或握力。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "reg-05",
+      "version": 1,
+      "category": "register",
+      "register": "formal",
+      "target": { "surface": "depart", "lemma": "depart" },
+      "context": {
+        "sentence": "The final train to the coast will depart from platform six."
+      },
+      "humanReference": {
+        "meaningZh": "出发；离开",
+        "acceptableParaphrasesZh": ["发车", "离开", "启程"],
+        "expectedContextClues": ["final train", "platform six", "to the coast"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能比较 depart 与 leave 的正式程度。",
+      "riskNotes": "可能误作到达或偏离主题。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "reg-06",
+      "version": 1,
+      "category": "register",
+      "register": "informal",
+      "target": { "surface": "grab", "lemma": "grab" },
+      "context": {
+        "sentence": "Let's grab a coffee before the next session starts."
+      },
+      "humanReference": {
+        "meaningZh": "快速买/喝一杯咖啡",
+        "acceptableParaphrasesZh": ["去喝杯咖啡", "顺手买杯咖啡", "快速买咖啡"],
+        "expectedContextClues": ["before the next session", "coffee", "Let's"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能解释口语中 grab 的快速获取义。",
+      "riskNotes": "可能解释为用力抓取。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "reg-07",
+      "version": 1,
+      "category": "register",
+      "register": "informal",
+      "target": { "surface": "hang out", "lemma": "hang out" },
+      "context": {
+        "sentence": "We're just going to hang out at Maya's place and watch something light.",
+        "after": "You're welcome to join us."
+      },
+      "humanReference": {
+        "meaningZh": "一起消磨时间；聚会放松",
+        "acceptableParaphrasesZh": ["一起待着", "聚会放松", "闲聚"],
+        "expectedContextClues": ["Maya's place", "watch something light", "join us"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能解释口语中的社交放松含义。",
+      "riskNotes": "可能误作把衣服挂出去。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "reg-08",
+      "version": 1,
+      "category": "register",
+      "register": "informal",
+      "target": { "surface": "chill", "lemma": "chill" },
+      "context": {
+        "sentence": "After the exam, we chilled in the park and did absolutely nothing.",
+        "before": "Everyone had been tense all week."
+      },
+      "humanReference": {
+        "meaningZh": "放松；悠闲待着",
+        "acceptableParaphrasesZh": ["放松", "闲待着", "轻松休息"],
+        "expectedContextClues": ["After the exam", "did absolutely nothing", "tense all week"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分冷与口语中的放松。",
+      "riskNotes": "可能误作变冷或冷藏。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "reg-09",
+      "version": 1,
+      "category": "register",
+      "register": "informal",
+      "target": { "surface": "awesome", "lemma": "awesome" },
+      "context": {
+        "sentence": "That's awesome news—I didn't know you got the internship.",
+        "after": "When do you start?"
+      },
+      "humanReference": {
+        "meaningZh": "太棒了；好消息",
+        "acceptableParaphrasesZh": ["太棒了", "真厉害", "非常好的消息"],
+        "expectedContextClues": ["good news", "got the internship", "When do you start"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能识别口语赞叹而非字面“令人敬畏”。",
+      "riskNotes": "可能误作恐惧或敬畏。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "reg-10",
+      "version": 1,
+      "category": "register",
+      "register": "informal",
+      "target": { "surface": "no worries", "lemma": "no worries" },
+      "context": {
+        "sentence": "No worries—we can send it again tomorrow morning.",
+        "before": "The file failed to attach in the first message."
+      },
+      "humanReference": {
+        "meaningZh": "没关系；不用担心",
+        "acceptableParaphrasesZh": ["别担心", "没事", "没关系"],
+        "expectedContextClues": ["failed to attach", "send it again", "tomorrow morning"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能解释口语安抚语。",
+      "riskNotes": "可能过度解释为没有任何焦虑。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "slang-01",
+      "version": 1,
+      "category": "slang-or-proper-noun",
+      "register": "informal",
+      "target": { "surface": "ghosted", "lemma": "ghost" },
+      "context": {
+        "sentence": "He ghosted me after we made plans for Friday, so I went with friends instead."
+      },
+      "humanReference": {
+        "meaningZh": "突然不再联系；玩消失",
+        "acceptableParaphrasesZh": ["突然失联", "不回消息", "故意玩消失"],
+        "expectedContextClues": ["made plans for Friday", "went with friends instead", "relationship context"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能识别社交失联的俚语义。",
+      "riskNotes": "可能误作真的出现鬼魂。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "slang-02",
+      "version": 1,
+      "category": "slang-or-proper-noun",
+      "register": "informal",
+      "target": { "surface": "low-key", "lemma": "low-key" },
+      "context": {
+        "sentence": "I'm low-key nervous about presenting in front of the whole department.",
+        "after": "I practiced the slides five times."
+      },
+      "humanReference": {
+        "meaningZh": "有点；暗暗地",
+        "acceptableParaphrasesZh": ["有点", "多少有些", "暗自"],
+        "expectedContextClues": ["nervous", "presenting", "practiced five times"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分字面低调与口语程度副词。",
+      "riskNotes": "可能误作音量低。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "slang-03",
+      "version": 1,
+      "category": "slang-or-proper-noun",
+      "register": "informal",
+      "target": { "surface": "GOAT", "lemma": "GOAT" },
+      "context": {
+        "sentence": "After her fifth title, fans called the runner the GOAT of the sport.",
+        "before": "She had broken two records that season."
+      },
+      "humanReference": {
+        "meaningZh": "史上最伟大者",
+        "acceptableParaphrasesZh": ["史上最佳", "历史最佳运动员", "greatest of all time"],
+        "expectedContextClues": ["fifth title", "fans", "broken two records", "the sport"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能识别缩写俚语并说明全称。",
+      "riskNotes": "可能误作山羊。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "proper-01",
+      "version": 1,
+      "category": "slang-or-proper-noun",
+      "register": "neutral",
+      "target": { "surface": "Project Halcyon", "lemma": "Project Halcyon" },
+      "context": {
+        "sentence": "Project Halcyon is the internal name for the company's quiet attempt to redesign its archive.",
+        "after": "The team has not announced any public release."
+      },
+      "humanReference": {
+        "meaningZh": "本文虚构项目名，指公司内部的档案重设计计划",
+        "acceptableParaphrasesZh": ["内部项目代号", "档案重设计项目名"],
+        "expectedContextClues": ["internal name", "company's", "redesign its archive"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能区分项目名词与普通词义。",
+      "riskNotes": "可能编造真实机构、产品背景或来源。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "proper-02",
+      "version": 1,
+      "category": "slang-or-proper-noun",
+      "register": "neutral",
+      "target": { "surface": "The Glass Orchard", "lemma": "The Glass Orchard" },
+      "context": {
+        "sentence": "The class discussed The Glass Orchard as if everyone had already read it.",
+        "before": "The reading list was distributed on Monday."
+      },
+      "humanReference": {
+        "meaningZh": "本文虚构的作品名；语境只表明它是课堂待读作品",
+        "acceptableParaphrasesZh": ["作品标题", "课堂阅读材料的名称"],
+        "expectedContextClues": ["class discussed", "reading list", "read it"]
+      },
+      "expectedBehavior": "express-uncertainty",
+      "reviewQuestionExpectation": "能说明它是标题，同时拒绝编造作者或情节。",
+      "riskNotes": "可能编造真实作品的作者、情节或评价。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "miss-01",
+      "version": 1,
+      "category": "dictionary-miss",
+      "register": "formal",
+      "target": { "surface": "solastalgia", "lemma": "solastalgia" },
+      "context": {
+        "sentence": "The residents described a kind of solastalgia as the familiar coastline disappeared.",
+        "after": "They were grieving a place that still existed but no longer felt the same."
+      },
+      "humanReference": {
+        "meaningZh": "因熟悉环境改变或丧失而产生的痛苦与乡愁",
+        "acceptableParaphrasesZh": ["环境变化带来的失落感", "因家园环境改变而痛苦", "生态乡愁"],
+        "expectedContextClues": ["coastline disappeared", "grieving a place", "no longer felt the same"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能根据海岸变化和失落感解释少见词。",
+      "riskNotes": "可能乱造心理疾病诊断或忽略环境变化线索。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "miss-02",
+      "version": 1,
+      "category": "dictionary-miss",
+      "register": "informal",
+      "target": { "surface": "microjournaling", "lemma": "microjournaling" },
+      "context": {
+        "sentence": "Her microjournaling habit means writing two sentences in a notes app whenever a thought feels important.",
+        "before": "She dislikes keeping a long daily diary."
+      },
+      "humanReference": {
+        "meaningZh": "用很短、频繁的记录进行微型日记写作",
+        "acceptableParaphrasesZh": ["短篇日记", "微型写作记录", "用短笔记频繁记录"],
+        "expectedContextClues": ["two sentences", "notes app", "whenever a thought feels important", "dislikes long diary"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能从句子定义反推复合词含义。",
+      "riskNotes": "可能编造专业心理疗法。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "miss-03",
+      "version": 1,
+      "category": "dictionary-miss",
+      "register": "formal",
+      "target": { "surface": "ecoanxiety", "lemma": "ecoanxiety" },
+      "context": {
+        "sentence": "The report links ecoanxiety among young adults to repeated warnings about climate disasters.",
+        "after": "It recommends providing practical ways to take action."
+      },
+      "humanReference": {
+        "meaningZh": "对生态和气候危机的持续焦虑",
+        "acceptableParaphrasesZh": ["生态焦虑", "对气候灾难的担忧", "环境危机焦虑"],
+        "expectedContextClues": ["climate disasters", "young adults", "warnings", "take action"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能解释复合词与气候语境的联系。",
+      "riskNotes": "可能扩大为所有焦虑症或给出医疗诊断。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "miss-04",
+      "version": 1,
+      "category": "dictionary-miss",
+      "register": "informal",
+      "target": { "surface": "promptcraft", "lemma": "promptcraft" },
+      "context": {
+        "sentence": "Good promptcraft is less about magic phrases and more about stating the task, context, and constraints clearly.",
+        "before": "The team tested several versions before asking the model to summarize the report."
+      },
+      "humanReference": {
+        "meaningZh": "设计清晰、有效提示词的能力与技巧",
+        "acceptableParaphrasesZh": ["提示词设计能力", "写有效提示词的技巧", "提示工程中的写作技艺"],
+        "expectedContextClues": ["magic phrases", "task, context, constraints", "asking the model"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能根据并列定义说明 promptcraft。",
+      "riskNotes": "可能把 craft 误作实体船只或编造研究标准。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    },
+    {
+      "id": "miss-05",
+      "version": 1,
+      "category": "dictionary-miss",
+      "register": "formal",
+      "target": { "surface": "rewilding", "lemma": "rewilding" },
+      "context": {
+        "sentence": "The land trust began rewilding the abandoned fields by restoring wetlands and reintroducing native plants.",
+        "after": "Local bird populations increased over the next three years."
+      },
+      "humanReference": {
+        "meaningZh": "通过恢复自然过程与原生生态来重新野化土地",
+        "acceptableParaphrasesZh": ["生态再野化", "恢复自然生态", "重新野化土地"],
+        "expectedContextClues": ["restoring wetlands", "native plants", "abandoned fields", "bird populations"]
+      },
+      "expectedBehavior": "answer",
+      "reviewQuestionExpectation": "能从生态恢复措施解释 rewilding。",
+      "riskNotes": "可能误作让动物变野或任意放弃管理。",
+      "provenance": { "type": "original", "author": "Word Tap R5", "copyrightMaterial": false }
+    }
+  ]
+}

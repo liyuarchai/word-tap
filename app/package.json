@@ -14,6 +14,9 @@
     "test:e2e": "playwright test",
     "design:tokens": "node scripts/audit-design-tokens.mjs",
     "design:tokens:fix": "node scripts/audit-design-tokens.mjs --fix",
+    "ai:eval:validate": "tsx ../scripts/run-ai-eval.ts --validate-only",
+    "ai:eval:template": "tsx ../scripts/run-ai-eval.ts --write-template",
+    "ai:eval": "tsx ../scripts/run-ai-eval.ts",
     "dictionary:build": "node --experimental-strip-types scripts/build-dictionary.ts",
     "ocr:sync": "node scripts/sync-ocr-assets.mjs"
   },

@@ -13,6 +13,6 @@
     "strict": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "scripts"]
+  "include": ["vite.config.ts", "playwright.config.ts", "scripts", "../scripts"]
 }
 

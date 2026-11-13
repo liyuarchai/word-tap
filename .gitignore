@@ -15,4 +15,8 @@ Thumbs.db
 !app/.env.example
 app/public/ocr/
 app/live-fixtures/
+eval-results/
+outputs/
+wordtap-ai-review-*.xlsx
+~$*.xlsx
 
