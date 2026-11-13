@@ -94,6 +94,18 @@ pnpm dictionary:build
 
 脚本默认读取 `node_modules/ecdict/assets/ecdict.csv`，输出词典和 `dictionary-meta.json`。元数据记录源文件哈希、输出哈希、许可和词条数量。
 
+## 设计系统
+
+作品集展示页位于 `/design-system`，只在应用壳内直接访问，不加入桌面图标轨或移动底栏。
+
+运行时视觉 Token 集中在 `src/styles/tokens.css`。检查组件是否绕过 Token、直接写入颜色或常用间距：
+
+```powershell
+pnpm design:tokens
+```
+
+完整使用规范见 [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md)。`pnpm lint` 会同时运行 Token 审计。
+
 ## OCR 与电子书
 
 - `pnpm dev` 和 `pnpm build` 会先运行 `pnpm ocr:sync`，把 Tesseract Worker、WASM Core 和英文模型同步到同源 `public/ocr/`；生成文件不提交到 Git。

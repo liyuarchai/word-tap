@@ -1,17 +1,13 @@
 import { Dialog } from '../../components/Dialog'
 import type { ReadingPreferences } from '../../domain/types'
 import styles from '../../styles/app.module.css'
-import { READING_THEME_TOKENS } from './readingThemes'
+import {
+  READING_THEMES,
+  READING_THEME_LABELS,
+  readingThemeBackground
+} from './readingThemes'
 
 const fontSizes = [16, 18, 20, 22, 24] as const
-
-const themeLabels: Record<ReadingPreferences['theme'], string> = {
-  paper: '纸白',
-  sepia: '暖褐',
-  mint: '薄荷',
-  night: '夜间',
-  blush: '浅粉'
-}
 
 export function ReadingPreferencesPanel({
   preferences,
@@ -157,17 +153,17 @@ export function ReadingPreferencesPanel({
         <fieldset className={styles.prefGroup}>
           <legend>颜色</legend>
           <div className={styles.themeChoices}>
-            {(Object.keys(themeLabels) as ReadingPreferences['theme'][]).map((theme) => (
+            {READING_THEMES.map((theme) => (
               <button
                 key={theme}
                 className={`${styles.themeChoice} ${
                   preferences.theme === theme ? styles.themeChoiceActive : ''
                 }`}
                 type="button"
-                style={{ background: READING_THEME_TOKENS[theme].bg }}
-                aria-label={`主题 ${themeLabels[theme]}`}
+                style={{ background: readingThemeBackground(theme) }}
+                aria-label={`主题 ${READING_THEME_LABELS[theme]}`}
                 aria-pressed={preferences.theme === theme}
-                title={themeLabels[theme]}
+                title={READING_THEME_LABELS[theme]}
                 onClick={() => update('theme', theme)}
               />
             ))}

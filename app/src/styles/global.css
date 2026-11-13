@@ -56,9 +56,9 @@ blockquote {
 }
 
 :focus-visible {
-  outline: 1px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: 2px;
+  outline: var(--border-strong) solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-focus);
 }
 
 @media (prefers-reduced-motion: reduce) {

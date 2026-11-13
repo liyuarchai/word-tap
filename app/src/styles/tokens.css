@@ -23,23 +23,191 @@
 }
 
 :root {
+  /* Paper and ink */
   --paper: #f7f5ef;
   --paper-raised: #fffdf8;
+  --paper-muted: #efebe2;
   --ink: #1a1b1e;
-  --ink-2: #5a5e66;
-  --ink-3: #6b7078;
+  --ink-2: #4f545c;
+  --ink-3: #62676f;
   --line: #e6e1d6;
+  --line-strong: #cfc7b8;
+  --line-soft-55: rgb(230 225 214 / 55%);
+  --line-soft-65: rgb(230 225 214 / 65%);
+  --line-soft-70: rgb(230 225 214 / 70%);
+
+  /* Interaction and meaning */
   --accent: #2f5d50;
   --accent-hover: #284f44;
+  --accent-pressed: #203f37;
   --accent-weak: #e8efec;
-  --highlight: #f4e3a8;
-  --amber: #b4763b;
-  --danger: #a5443c;
-  --serif: 'Newsreader', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+  --selection-bg: #f4e3a8;
+  --selection-ink: #1a1b1e;
+  --context-bg: #dce8e4;
+  --context-line: #2f5d50;
+  --ai-ink: #315b70;
+  --ai-bg: #e6eef2;
+  --ai-line: #9bb8c5;
+  --cache-ink: #605a4f;
+  --cache-bg: #eee8dc;
+  --cache-line: #d8cfbd;
+  --success-ink: #2f654d;
+  --success-bg: #e4f0e9;
+  --success-line: #b9d5c6;
+  --warning-ink: #8c5b28;
+  --warning-bg: #f6ead7;
+  --warning-line: #e3c69e;
+  --danger-ink: #8d3630;
+  --danger-pressed: #702a26;
+  --danger-bg: #f5e3e1;
+  --danger-line: #dfb7b2;
+  --focus-ring: #245d8c;
+  --focus-ring-on-dark: #b4d6ca;
+  --scrim-soft: rgb(26 27 30 / 18%);
+  --scrim-strong: rgb(26 27 30 / 22%);
+  --overlay-reader: rgb(20 20 20 / 16%);
+  --surface-tabbar: rgb(247 245 239 / 96%);
+  --guide-line: rgb(255 255 255 / 82%);
+  --guide-shadow: rgb(0 0 0 / 24%);
+
+  /* Legacy semantic aliases */
+  --highlight: var(--selection-bg);
+  --amber: var(--warning-ink);
+  --danger: var(--danger-ink);
+
+  /* Typography */
+  --font-reading: 'Newsreader', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
+  --font-ui: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
+  --font-size-caption: 11px;
+  --font-size-meta: 12px;
+  --font-size-control: 13px;
+  --font-size-body: 14px;
+  --font-size-reading-mobile: 17px;
+  --font-size-reading: 20px;
+  --font-size-heading-sm: 26px;
+  --font-size-page-title: 28px;
+  --font-size-heading: 30px;
+  --font-size-heading-lg: 32px;
+  --font-size-display: 64px;
+  --line-height-caption: 1.4;
+  --line-height-meta: 1.5;
+  --line-height-control: 1.55;
+  --line-height-body: 1.6;
+  --line-height-reading-mobile: 1.85;
+  --line-height-reading: 1.9;
+
+  /* Legacy font aliases */
+  --serif: var(--font-reading);
   --zh-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', serif;
-  --sans: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
-  --shadow: 0 1px 2px rgb(20 20 20 / 4%), 0 8px 24px rgb(20 20 20 / 6%);
+  --sans: var(--font-ui);
+
+  /* 4/8 spacing grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-optical-14: 14px;
+  --space-optical-18: 18px;
+  --space-optical-22: 22px;
+  --space-optical-28: 28px;
+  --control-min-height: 44px;
+  --control-primary-height: 48px;
+  --control-icon-size: 44px;
+  --word-hit-size: 24px;
+
+  /* Shape and depth */
+  --radius-focus: 2px;
+  --radius-inline: 4px;
+  --radius-small: 8px;
+  --radius-control: 10px;
+  --radius-card: 12px;
+  --radius-badge: 14px;
+  --radius-panel: 16px;
+  --radius-sheet: 20px;
+  --radius-pill: 999px;
+  --border-hairline: 1px;
+  --border-strong: 2px;
+  --shadow-low: 0 1px 2px rgb(20 20 20 / 4%);
+  --shadow-raised: 0 8px 24px rgb(20 20 20 / 6%);
+  --shadow-overlay: 0 18px 48px rgb(20 20 20 / 12%);
+  --focus-ring-shadow: 0 0 0 3px rgb(36 93 140 / 22%);
+  --theme-choice-ring: 0 0 0 2px var(--paper-raised), 0 0 0 4px var(--accent);
+  --shadow: var(--shadow-low), var(--shadow-raised);
+
+  /* Motion */
+  --motion-instant: 0ms;
+  --motion-fast: 120ms;
+  --motion-subtle: 140ms;
+  --motion-soft: 160ms;
+  --motion-standard: 180ms;
+  --motion-panel: 240ms;
+  --motion-reading: 320ms;
+  --motion-chrome: 420ms;
+  --motion-loading: 1200ms;
+  --ease-standard: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease: var(--ease-standard);
+
+  /* Reader themes */
+  --reading-theme-paper-bg: #f7f5ef;
+  --reading-theme-paper-surface: #fffdf8;
+  --reading-theme-paper-ink: #1a1b1e;
+  --reading-theme-paper-ink-2: #4f545c;
+  --reading-theme-paper-ink-3: #62676f;
+  --reading-theme-paper-line: #e6e1d6;
+  --reading-theme-paper-accent: #2f5d50;
+  --reading-theme-paper-accent-weak: #e8efec;
+  --reading-theme-paper-highlight: #f4e3a8;
+  --reading-theme-sepia-bg: #efe2c9;
+  --reading-theme-sepia-surface: #f8edda;
+  --reading-theme-sepia-ink: #30291f;
+  --reading-theme-sepia-ink-2: #514536;
+  --reading-theme-sepia-ink-3: #695742;
+  --reading-theme-sepia-line: #d7c3a3;
+  --reading-theme-sepia-accent: #77511d;
+  --reading-theme-sepia-accent-weak: #ead9bc;
+  --reading-theme-sepia-highlight: #ebcf91;
+  --reading-theme-mint-bg: #e6f2ec;
+  --reading-theme-mint-surface: #f1faf6;
+  --reading-theme-mint-ink: #1f302a;
+  --reading-theme-mint-ink-2: #40534b;
+  --reading-theme-mint-ink-3: #4f625a;
+  --reading-theme-mint-line: #c6ddd2;
+  --reading-theme-mint-accent: #27604f;
+  --reading-theme-mint-accent-weak: #d5e8df;
+  --reading-theme-mint-highlight: #efdda9;
+  --reading-theme-night-bg: #20252d;
+  --reading-theme-night-surface: #292f38;
+  --reading-theme-night-ink: #f1f3f5;
+  --reading-theme-night-ink-2: #d2d7dd;
+  --reading-theme-night-ink-3: #b8c0ca;
+  --reading-theme-night-line: #424b57;
+  --reading-theme-night-accent: #b4d6ca;
+  --reading-theme-night-accent-weak: #35443f;
+  --reading-theme-night-highlight: #69551f;
+  --reading-theme-blush-bg: #f6ebef;
+  --reading-theme-blush-surface: #fff7f9;
+  --reading-theme-blush-ink: #34272c;
+  --reading-theme-blush-ink-2: #57474d;
+  --reading-theme-blush-ink-3: #66545c;
+  --reading-theme-blush-line: #e1ccd4;
+  --reading-theme-blush-accent: #754652;
+  --reading-theme-blush-accent-weak: #ecdbe1;
+  --reading-theme-blush-highlight: #efd5a9;
+
+  /* Reader brightness overlays */
+  --reading-tint-dim: rgb(28 24 18 / 7%);
+  --reading-tint-normal: rgb(28 24 18 / 3%);
+  --reading-tint-bright: transparent;
+
+  /* Layout */
   --rail: 64px;
   --tabbar: 56px;
 }

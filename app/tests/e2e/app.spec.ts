@@ -89,6 +89,81 @@ test('@smoke routes, navigation and unknown content render', async ({ page }) =>
   await expect(page.getByText('内容没有找到。')).toBeVisible()
 })
 
+test('@visual design system page presents tokens, source states and responsive specimens', async ({
+  page
+}) => {
+  const postRequests: string[] = []
+  page.on('request', (request) => {
+    if (request.method() === 'POST') postRequests.push(request.url())
+  })
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/design-system')
+  await expect(page).toHaveURL(/\/design-system$/)
+  await expect(
+    page.getByRole('heading', { level: 1, name: /阅读，不与噪声争夺注意力/ })
+  ).toBeVisible()
+  for (const heading of [
+    '颜色与字体',
+    '选中词与上下文',
+    '本地释义与 AI 释义',
+    '阅读边注与降级矩阵',
+    '按钮、输入与反馈',
+    '桌面侧栏与移动边注'
+  ]) {
+    await expect(page.getByRole('heading', { level: 2, name: heading })).toBeVisible()
+  }
+  await expect(
+    page.getByRole('list', { name: 'AI 状态矩阵' }).getByRole('listitem')
+  ).toHaveCount(12)
+  expect(await page.getByText('本地词典').count()).toBeGreaterThan(0)
+  expect(await page.getByText('AI 语境解释').count()).toBeGreaterThan(0)
+  expect(await page.getByText('已缓存').count()).toBeGreaterThan(0)
+  await expect(page.getByText('✓ 已保存')).toBeVisible()
+  await expect(page.getByText('请求超时')).toBeVisible()
+  await expect(page.getByText('响应结构非法')).toBeVisible()
+  await expect(page.getByText('正在加载本地词典…')).toBeVisible()
+  await expect(page.getByText('还没有内容。')).toBeVisible()
+  await expect(page.getByRole('link', { name: '设计系统' })).toHaveCount(0)
+
+  const undersizedControls = await page
+    .locator('button:not([class*="wordButton"]), a[href], input:not([type="hidden"])')
+    .evaluateAll((controls) =>
+      controls
+        .filter((element) => {
+          const rect = element.getBoundingClientRect()
+          return rect.width > 0 && rect.height > 0 && rect.height < 44
+        })
+        .map((element) => element.textContent?.trim() || element.getAttribute('aria-label'))
+    )
+  expect(undersizedControls).toEqual([])
+  await page.screenshot({ path: 'test-results/design-system-desktop.png', fullPage: true })
+
+  const axe = await new AxeBuilder({ page }).analyze()
+  expect(
+    axe.violations.filter((item) => item.impact === 'serious' || item.impact === 'critical')
+  ).toHaveLength(0)
+
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  const reducedMotionDurations = await page.evaluate(() => {
+    const skeleton = document.querySelector('[class*="skeletonRow"]')
+    const primary = document.querySelector('[class*="primaryButton"]')
+    return {
+      animation: skeleton ? getComputedStyle(skeleton).animationDuration : '',
+      transition: primary ? getComputedStyle(primary).transitionDuration : ''
+    }
+  })
+  expect(parseFloat(reducedMotionDurations.animation)).toBeLessThanOrEqual(0.01)
+  expect(parseFloat(reducedMotionDurations.transition)).toBeLessThanOrEqual(0.01)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+  )
+  expect(overflow).toBe(false)
+  await page.screenshot({ path: 'test-results/design-system-mobile.png', fullPage: true })
+  expect(postRequests).toEqual([])
+})
+
 test('@visual responsive app has no horizontal overflow and word panel does not move text', async ({
   page
 }) => {

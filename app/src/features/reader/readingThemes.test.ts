@@ -1,15 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import {
-  READING_BRIGHTNESS_TINTS,
-  READING_THEME_TOKENS
-} from './readingThemes'
+import tokensCss from '../../styles/tokens.css?raw'
+import { READING_BRIGHTNESS_LEVELS, READING_THEMES } from './readingThemes'
 
-const themes = Object.keys(READING_THEME_TOKENS) as Array<
-  keyof typeof READING_THEME_TOKENS
->
-const brightnessLevels = Object.keys(READING_BRIGHTNESS_TINTS) as Array<
-  keyof typeof READING_BRIGHTNESS_TINTS
->
+function token(name: string): string {
+  const match = tokensCss.match(new RegExp(`${name}:\\s*([^;]+);`))
+  if (!match) throw new Error(`Missing token ${name}`)
+  return match[1].trim()
+}
+
+function tint(
+  level: (typeof READING_BRIGHTNESS_LEVELS)[number]
+): [number, number, number, number] {
+  const value = token(`--reading-tint-${level}`)
+  if (value === 'transparent') return [255, 255, 255, 0]
+  const match = value.match(/rgb\((\d+)\s+(\d+)\s+(\d+)\s*\/\s*(\d+)%\)/)
+  if (!match) throw new Error(`Invalid tint ${value}`)
+  return [
+    Number(match[1]),
+    Number(match[2]),
+    Number(match[3]),
+    Number(match[4]) / 100
+  ]
+}
 
 function rgb(hex: string): [number, number, number] {
   return [
@@ -47,26 +59,30 @@ function contrast(first: string, second: string): number {
 }
 
 describe('reading theme contrast', () => {
-  it.each(themes)('keeps %s text at AA across all brightness levels', (theme) => {
-    const tokens = READING_THEME_TOKENS[theme]
-    for (const level of brightnessLevels) {
-      const tint = READING_BRIGHTNESS_TINTS[level]
-      const tintedBackground = composite(rgb(tokens.bg), tint)
-      const tintedSurface = composite(rgb(tokens.surface), tint)
+  it.each(READING_THEMES)('keeps %s text at AA across all brightness levels', (theme) => {
+    const background = token(`--reading-theme-${theme}-bg`)
+    const surface = token(`--reading-theme-${theme}-surface`)
+    const ink = token(`--reading-theme-${theme}-ink`)
+    const ink2 = token(`--reading-theme-${theme}-ink-2`)
+    const ink3 = token(`--reading-theme-${theme}-ink-3`)
+    for (const level of READING_BRIGHTNESS_LEVELS) {
+      const tintColor = tint(level)
+      const tintedBackground = composite(rgb(background), tintColor)
+      const tintedSurface = composite(rgb(surface), tintColor)
       expect(
-        contrast(tokens.ink, tintedBackground),
+        contrast(ink, tintedBackground),
         `${theme}/${level} primary text contrast`
       ).toBeGreaterThanOrEqual(4.5)
       expect(
-        contrast(tokens.ink3, tintedBackground),
+        contrast(ink3, tintedBackground),
         `${theme}/${level} muted text contrast`
       ).toBeGreaterThanOrEqual(4.5)
       expect(
-        contrast(tokens.ink3, tintedSurface),
+        contrast(ink3, tintedSurface),
         `${theme}/${level} muted surface contrast`
       ).toBeGreaterThanOrEqual(4.5)
       expect(
-        contrast(tokens.ink2, tintedBackground),
+        contrast(ink2, tintedBackground),
         `${theme}/${level} secondary text contrast`
       ).toBeGreaterThanOrEqual(4.5)
     }

@@ -14,7 +14,16 @@ export const router = createBrowserRouter([
       { path: '/library', element: <LibraryPage /> },
       { path: '/notebook', element: <NotebookPage /> },
       { path: '/review', element: <ReviewHomePage /> },
-      { path: '/settings', element: <SettingsPage /> }
+      { path: '/settings', element: <SettingsPage /> },
+      {
+        path: '/design-system',
+        lazy: async () => {
+          const { DesignSystemPage } = await import(
+            '../features/design-system/DesignSystemPage'
+          )
+          return { Component: DesignSystemPage }
+        }
+      }
     ]
   },
   { path: '/reader/:contentId', element: <ReaderPage /> },

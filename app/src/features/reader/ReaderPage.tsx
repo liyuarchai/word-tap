@@ -27,7 +27,6 @@ import { buildLocalGloss } from '../../services/dictionary'
 import { MarkdownBlock } from './MarkdownBlock'
 import { WordPanel } from './WordPanel'
 import { ReadingPreferencesPanel } from './ReadingPreferencesPanel'
-import { readingThemeVariables } from './readingThemes'
 import styles from '../../styles/app.module.css'
 import { DEFAULT_READING_PREFERENCES } from '../../domain/types'
 
@@ -116,7 +115,6 @@ export function ReaderPage() {
   }
 
   const readerStyle = {
-    ...readingThemeVariables(readingPreferences.theme, readingPreferences.brightness),
     ...(readingPreferencesActive
       ? {
           '--reader-font-size': `${readingPreferences.fontSize}px`,
