@@ -27,6 +27,7 @@ import { buildLocalGloss } from '../../services/dictionary'
 import { MarkdownBlock } from './MarkdownBlock'
 import { WordPanel } from './WordPanel'
 import { ReadingPreferencesPanel } from './ReadingPreferencesPanel'
+import { useReadingSession } from './useReadingSession'
 import styles from '../../styles/app.module.css'
 import { DEFAULT_READING_PREFERENCES } from '../../domain/types'
 
@@ -134,6 +135,8 @@ export function ReaderPage() {
     const found = contents.find((item) => item.id === contentId)
     setContent(found ?? null)
   }, [contentId, contents])
+
+  useReadingSession(repository, content)
 
   const virtualizer = useVirtualizer({
     count: content?.segments.length ?? 0,

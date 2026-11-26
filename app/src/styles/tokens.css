@@ -90,6 +90,8 @@
   --font-size-heading: 30px;
   --font-size-heading-lg: 32px;
   --font-size-display: 64px;
+  --font-size-definition: 16px;
+  --font-size-stats-total: clamp(40px, 5vw, 64px);
   --line-height-caption: 1.4;
   --line-height-meta: 1.5;
   --line-height-control: 1.55;

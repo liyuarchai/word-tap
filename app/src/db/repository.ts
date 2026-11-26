@@ -5,6 +5,7 @@ import type {
   BackupV1,
   ContentRecord,
   ImportPreview,
+  ReadingSessionRecord,
   ReviewLog,
   ReviewSession,
   Settings,
@@ -36,16 +37,21 @@ function backupPreview(backup: BackupV1, current: {
   vocabularies: VocabularyRecord[]
   reviewLogs: ReviewLog[]
   reviewSessions: ReviewSession[]
+  readingSessions: ReadingSessionRecord[]
 }): ImportPreview {
   const contentIds = new Set(current.contents.map((item) => item.id))
   const vocabIds = new Set(current.vocabularies.map((item) => item.id))
   const logIds = new Set(current.reviewLogs.map((item) => item.id))
   const sessionDates = new Set(current.reviewSessions.map((item) => item.localDate))
+  const readingSessionIds = new Set(current.readingSessions.map((item) => item.id))
   const conflicts =
     backup.data.contents.filter((item) => contentIds.has(item.id)).length +
     backup.data.vocabularies.filter((item) => vocabIds.has(item.id)).length +
     backup.data.reviewLogs.filter((item) => logIds.has(item.id)).length +
-    backup.data.reviewSessions.filter((item) => sessionDates.has(item.localDate)).length
+    backup.data.reviewSessions.filter((item) => sessionDates.has(item.localDate)).length +
+    (backup.data.readingSessions ?? []).filter((item) =>
+      readingSessionIds.has(item.id)
+    ).length
 
   return {
     contents: backup.data.contents.length,
@@ -121,6 +127,14 @@ export class DexieRepository implements AppRepository {
     await db.reviewLogs.put(log)
   }
 
+  async listReadingSessions() {
+    return db.readingSessions.orderBy('startedAt').toArray()
+  }
+
+  async putReadingSession(session: ReadingSessionRecord) {
+    await db.readingSessions.put(session)
+  }
+
   async gradeVocabulary(
     vocabulary: VocabularyRecord,
     session: ReviewSession,
@@ -169,11 +183,19 @@ export class DexieRepository implements AppRepository {
   }
 
   async exportBackup(): Promise<BackupV1> {
-    const [contents, vocabularies, reviewLogs, reviewSessions, settings] = await Promise.all([
+    const [
+      contents,
+      vocabularies,
+      reviewLogs,
+      reviewSessions,
+      readingSessions,
+      settings
+    ] = await Promise.all([
       db.contents.toArray(),
       db.vocabularies.toArray(),
       db.reviewLogs.toArray(),
       db.reviewSessions.toArray(),
+      db.readingSessions.toArray(),
       this.getSettings()
     ])
     return {
@@ -186,6 +208,7 @@ export class DexieRepository implements AppRepository {
         vocabularies,
         reviewLogs,
         reviewSessions,
+        readingSessions,
         settings: {
           apiBaseUrl: settings.apiBaseUrl,
           model: settings.model,
@@ -202,7 +225,8 @@ export class DexieRepository implements AppRepository {
       contents: await db.contents.toArray(),
       vocabularies: await db.vocabularies.toArray(),
       reviewLogs: await db.reviewLogs.toArray(),
-      reviewSessions: await db.reviewSessions.toArray()
+      reviewSessions: await db.reviewSessions.toArray(),
+      readingSessions: await db.readingSessions.toArray()
     }
     return backupPreview(data as BackupV1, current)
   }
@@ -213,21 +237,30 @@ export class DexieRepository implements AppRepository {
       contents: await db.contents.toArray(),
       vocabularies: await db.vocabularies.toArray(),
       reviewLogs: await db.reviewLogs.toArray(),
-      reviewSessions: await db.reviewSessions.toArray()
+      reviewSessions: await db.reviewSessions.toArray(),
+      readingSessions: await db.readingSessions.toArray()
     }
     const preview = backupPreview(parsed, current)
     const localSettings = await this.getSettings()
 
     await db.transaction(
       'rw',
-      [db.contents, db.vocabularies, db.reviewLogs, db.reviewSessions, db.settings],
+      [
+        db.contents,
+        db.vocabularies,
+        db.reviewLogs,
+        db.reviewSessions,
+        db.readingSessions,
+        db.settings
+      ],
       async () => {
         if (mode === 'replace') {
           await Promise.all([
             db.contents.clear(),
             db.vocabularies.clear(),
             db.reviewLogs.clear(),
-            db.reviewSessions.clear()
+            db.reviewSessions.clear(),
+            db.readingSessions.clear()
           ])
         }
 
@@ -266,6 +299,12 @@ export class DexieRepository implements AppRepository {
             })
           }
         }
+        for (const session of parsed.data.readingSessions ?? []) {
+          const existing = await db.readingSessions.get(session.id)
+          if (!existing || existing.updatedAt < session.updatedAt) {
+            await db.readingSessions.put(session)
+          }
+        }
         const importedSettings: Settings = {
           ...parsed.data.settings,
           id: 'app',
@@ -291,6 +330,7 @@ export class DexieRepository implements AppRepository {
         db.vocabularies,
         db.reviewLogs,
         db.reviewSessions,
+        db.readingSessions,
         db.settings,
         db.aiCache
       ],
@@ -300,6 +340,7 @@ export class DexieRepository implements AppRepository {
           db.vocabularies.clear(),
           db.reviewLogs.clear(),
           db.reviewSessions.clear(),
+          db.readingSessions.clear(),
           db.settings.clear(),
           db.aiCache.clear()
         ])

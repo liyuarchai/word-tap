@@ -7,6 +7,7 @@ const items: Array<{ to: string; label: string; icon: IconName }> = [
   { to: '/library', label: '内容库', icon: 'library' },
   { to: '/notebook', label: '生词本', icon: 'notebook' },
   { to: '/review', label: '今日复习', icon: 'review' },
+  { to: '/stats', label: '阅读统计', icon: 'stats' },
   { to: '/settings', label: '设置', icon: 'settings' }
 ]
 

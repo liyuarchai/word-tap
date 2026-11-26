@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { ContentRecord, VocabularyRecord } from '../domain/types'
+import type {
+  ContentRecord,
+  ReadingSessionRecord,
+  VocabularyRecord
+} from '../domain/types'
 import { db } from './db'
 import { DexieRepository } from './repository'
 import { localDateKey, scheduleVocabulary } from '../domain/review'
@@ -50,6 +54,18 @@ const vocabulary: VocabularyRecord = {
   reviewCount: 0
 }
 
+const readingSession: ReadingSessionRecord = {
+  id: 'reading-1',
+  startedAt: now,
+  endedAt: '2026-11-04T10:00:20.000Z',
+  effectiveSeconds: 20,
+  contentId: 'c1',
+  contentTitle: 'Demo',
+  userId: 'wordtap-local-reader',
+  localDate: '2026-11-04',
+  updatedAt: '2026-11-04T10:00:20.000Z'
+}
+
 describe('Dexie repository', () => {
   const repository = new DexieRepository()
 
@@ -73,6 +89,24 @@ describe('Dexie repository', () => {
     await repository.deleteContent('c1')
     expect(await repository.getContent('c1')).toBeUndefined()
     expect(await repository.getVocabulary('v1')).toBeDefined()
+  })
+
+  it('upserts one reading session idempotently and preserves it in backups', async () => {
+    await repository.putReadingSession(readingSession)
+    await repository.putReadingSession({
+      ...readingSession,
+      effectiveSeconds: 40,
+      endedAt: '2026-11-04T10:00:40.000Z',
+      updatedAt: '2026-11-04T10:00:40.000Z'
+    })
+    expect(await repository.listReadingSessions()).toEqual([
+      expect.objectContaining({ id: 'reading-1', effectiveSeconds: 40 })
+    ])
+
+    const backup = await repository.exportBackup()
+    expect(backup.data.readingSessions).toEqual([
+      expect.objectContaining({ id: 'reading-1', effectiveSeconds: 40 })
+    ])
   })
 
   it('round-trips a JSON backup without an API key', async () => {

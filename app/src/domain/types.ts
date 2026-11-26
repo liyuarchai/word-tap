@@ -108,6 +108,18 @@ export interface ReviewSession {
   completedAt?: string
 }
 
+export interface ReadingSessionRecord {
+  id: string
+  startedAt: string
+  endedAt: string
+  effectiveSeconds: number
+  contentId: string
+  contentTitle: string
+  userId: string
+  localDate: string
+  updatedAt: string
+}
+
 export interface Settings {
   id: 'app'
   apiBaseUrl: string
@@ -274,6 +286,7 @@ export interface BackupV1 {
     vocabularies: VocabularyRecord[]
     reviewLogs: ReviewLog[]
     reviewSessions: ReviewSession[]
+    readingSessions?: ReadingSessionRecord[]
     settings: Omit<Settings, 'id' | 'apiKey' | 'updatedAt'>
   }
 }
@@ -304,6 +317,8 @@ export interface AppRepository {
     session: ReviewSession,
     log: ReviewLog
   ): Promise<void>
+  listReadingSessions(): Promise<ReadingSessionRecord[]>
+  putReadingSession(session: ReadingSessionRecord): Promise<void>
   getSettings(): Promise<Settings>
   saveSettings(settings: Settings): Promise<void>
   getAiCache(key: string): Promise<AiCacheRecord | undefined>
