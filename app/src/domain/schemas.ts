@@ -95,6 +95,18 @@ export const reviewSessionSchema = z.object({
   completedAt: z.string().optional()
 })
 
+export const readingSessionSchema = z.object({
+  id: z.string().min(1),
+  startedAt: z.string(),
+  endedAt: z.string(),
+  effectiveSeconds: z.number().int().nonnegative(),
+  contentId: z.string().min(1),
+  contentTitle: z.string(),
+  userId: z.string().min(1),
+  localDate: z.string(),
+  updatedAt: z.string()
+})
+
 export const readingPreferencesSchema = z.object({
   fontFamily: z.enum(['serif', 'sans']),
   fontSize: z.union([
@@ -138,6 +150,7 @@ export const backupSchema = z.object({
     vocabularies: z.array(vocabularySchema),
     reviewLogs: z.array(reviewLogSchema),
     reviewSessions: z.array(reviewSessionSchema),
+    readingSessions: z.array(readingSessionSchema).optional(),
     settings: settingsSchema.omit({ id: true, apiKey: true, updatedAt: true })
   })
 })

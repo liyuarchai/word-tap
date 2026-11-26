@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie'
 import type {
   AiCacheRecord,
   ContentRecord,
+  ReadingSessionRecord,
   ReviewLog,
   ReviewSession,
   Settings,
@@ -13,6 +14,7 @@ export class WordTapDatabase extends Dexie {
   vocabularies!: EntityTable<VocabularyRecord, 'id'>
   reviewLogs!: EntityTable<ReviewLog, 'id'>
   reviewSessions!: EntityTable<ReviewSession, 'localDate'>
+  readingSessions!: EntityTable<ReadingSessionRecord, 'id'>
   settings!: EntityTable<Settings, 'id'>
   aiCache!: EntityTable<AiCacheRecord, 'key'>
 
@@ -23,6 +25,15 @@ export class WordTapDatabase extends Dexie {
       vocabularies: 'id, contentId, createdAt, dueAt, updatedAt',
       reviewLogs: 'id, vocabularyId, reviewedAt',
       reviewSessions: 'localDate, updatedAt',
+      settings: 'id',
+      aiCache: 'key, createdAt'
+    })
+    this.version(2).stores({
+      contents: 'id, lastOpenedAt, contentHash, updatedAt',
+      vocabularies: 'id, contentId, createdAt, dueAt, updatedAt',
+      reviewLogs: 'id, vocabularyId, reviewedAt',
+      reviewSessions: 'localDate, updatedAt',
+      readingSessions: 'id, contentId, localDate, startedAt, userId, updatedAt',
       settings: 'id',
       aiCache: 'key, createdAt'
     })

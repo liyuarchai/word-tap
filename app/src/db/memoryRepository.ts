@@ -3,6 +3,7 @@ import type {
   AppRepository,
   BackupV1,
   ContentRecord,
+  ReadingSessionRecord,
   ReviewLog,
   ReviewSession,
   Settings,
@@ -14,6 +15,7 @@ export class MemoryRepository implements AppRepository {
   contents: ContentRecord[] = []
   vocabularies: VocabularyRecord[] = []
   logs: ReviewLog[] = []
+  readingSessions: ReadingSessionRecord[] = []
   sessions = new Map<string, ReviewSession>()
   settings = defaultSettings()
   cache = new Map<string, AiCacheRecord>()
@@ -63,6 +65,14 @@ export class MemoryRepository implements AppRepository {
   async putReviewLog(log: ReviewLog) {
     if (!this.logs.some((item) => item.id === log.id)) this.logs.push(log)
   }
+  async listReadingSessions() {
+    return [...this.readingSessions].sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+  }
+  async putReadingSession(session: ReadingSessionRecord) {
+    const index = this.readingSessions.findIndex((item) => item.id === session.id)
+    if (index < 0) this.readingSessions.push(session)
+    else this.readingSessions[index] = session
+  }
   async gradeVocabulary(
     vocabulary: VocabularyRecord,
     session: ReviewSession,
@@ -102,6 +112,7 @@ export class MemoryRepository implements AppRepository {
         vocabularies: structuredClone(this.vocabularies),
         reviewLogs: structuredClone(this.logs),
         reviewSessions: structuredClone([...this.sessions.values()]),
+        readingSessions: structuredClone(this.readingSessions),
         settings: {
           apiBaseUrl: this.settings.apiBaseUrl,
           model: this.settings.model,
@@ -116,6 +127,7 @@ export class MemoryRepository implements AppRepository {
     const existingVocab = new Set(this.vocabularies.map((item) => item.id))
     const existingLogs = new Set(this.logs.map((item) => item.id))
     const existingSessions = new Set(this.sessions.keys())
+    const existingReadingSessions = new Set(this.readingSessions.map((item) => item.id))
     return {
       contents: backup.data.contents.length,
       vocabularies: backup.data.vocabularies.length,
@@ -125,7 +137,10 @@ export class MemoryRepository implements AppRepository {
         backup.data.contents.filter((item) => existingContent.has(item.id)).length +
         backup.data.vocabularies.filter((item) => existingVocab.has(item.id)).length +
         backup.data.reviewLogs.filter((item) => existingLogs.has(item.id)).length +
-        backup.data.reviewSessions.filter((item) => existingSessions.has(item.localDate)).length
+        backup.data.reviewSessions.filter((item) => existingSessions.has(item.localDate)).length +
+        (backup.data.readingSessions ?? []).filter((item) =>
+          existingReadingSessions.has(item.id)
+        ).length
     }
   }
   async importBackup(backup: BackupV1, mode: 'merge' | 'replace') {
@@ -135,6 +150,7 @@ export class MemoryRepository implements AppRepository {
       this.vocabularies = []
       this.logs = []
       this.sessions.clear()
+      this.readingSessions = []
     }
     for (const content of backup.data.contents) {
       const existing = await this.getContent(content.id)
@@ -160,6 +176,12 @@ export class MemoryRepository implements AppRepository {
         })
       }
     }
+    for (const session of backup.data.readingSessions ?? []) {
+      const existing = this.readingSessions.find((item) => item.id === session.id)
+      if (!existing || existing.updatedAt < session.updatedAt) {
+        await this.putReadingSession(session)
+      }
+    }
     const importedSettings: Settings = {
       ...this.settings,
       ...backup.data.settings,
@@ -181,6 +203,7 @@ export class MemoryRepository implements AppRepository {
     this.vocabularies = []
     this.logs = []
     this.sessions.clear()
+    this.readingSessions = []
     this.cache.clear()
     this.settings = defaultSettings()
   }

@@ -4,9 +4,11 @@ export type IconName =
   | 'library'
   | 'notebook'
   | 'review'
+  | 'stats'
   | 'settings'
   | 'plus'
   | 'back'
+  | 'forward'
   | 'close'
   | 'search'
   | 'more'
@@ -32,6 +34,12 @@ const paths: Record<IconName, ReactNode> = {
       <path d="m9 14 2 2 4-4" />
     </>
   ),
+  stats: (
+    <>
+      <path d="M4 19V5M4 19h16" />
+      <path d="M8 16V11M12 16V7M16 16v-3M20 16V9" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="3" />
@@ -40,6 +48,7 @@ const paths: Record<IconName, ReactNode> = {
   ),
   plus: <path d="M12 5v14M5 12h14" />,
   back: <path d="m15 5-7 7 7 7" />,
+  forward: <path d="m9 5 7 7-7 7" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,
   search: (
     <>
